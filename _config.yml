@@ -1,1 +1,3 @@
 theme: jekyll-theme-cayman
+title: [Face-Based-Features RANSAC]
+description: [Implements object pose estimation for arbitrary geomtries (.stl) to a scene described by a point cloud.]
