@@ -1,1 +1,3 @@
-__pycache__/Octree.cpython-37.pyc
+__pycache__/*
+*.pyc
+.vscode/*
