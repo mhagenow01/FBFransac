@@ -2,14 +2,18 @@ from Octree import Octree
 import point_cloud_utils as pcu 
 import numpy as np
 from pykdtree.kdtree import KDTree
+from Verbosifier import verbose
 
 class ModelFinder:
     def __init__(self, model):
         self.Model = model
     
+    #Don't try to verbose a generator.
     def findInCloud(self, cloud):
         cloudNormals = pcu.estimate_normals(cloud, 5)
-        cloud, cloudNormals = self.planarCloudSampling(cloud, cloudNormals, 0.1, 0.3, 0.001)
+        mask = ModelFinder.voxelFilter(cloud, size = 0.005)
+        cloud, cloudNormals = cloud[mask], cloudNormals[mask]
+        #cloud, cloudNormals = self.planarCloudSampling(cloud, cloudNormals, 0.1, 0.3, 0.001)
         sceneTree = KDTree(cloud)
         indexes = list(range(len(cloud)))
 
@@ -33,6 +37,34 @@ class ModelFinder:
 
         return None
     
+    @staticmethod
+    @verbose()
+    def voxelFilter(cloud, size = 0.01):
+        min = np.min(cloud, axis = 0)
+        max = np.max(cloud, axis = 0)
+        nBins = np.array(np.ceil((max - min) / size), dtype = np.int)
+        grid = np.full(nBins, -1, dtype = np.int)
+        nPoints = 0
+        for i, p in enumerate(cloud):
+            index = np.array(np.floor((p - min) / size), dtype = np.int)
+            t_index = tuple(index)
+            j = grid[t_index]
+            if j == -1:
+                grid[t_index] = i
+                nPoints += 1
+            else:
+                gridPos = min + (index / nBins) * (max - min)
+                if np.linalg.norm(p - gridPos) < np.linalg.norm(cloud[grid[t_index]] - gridPos):
+                    grid[t_index] = i
+        chosenPoints = np.zeros(nPoints, dtype = np.int)
+        i = 0
+        for pointIndex in grid.flatten():
+            if pointIndex > -1:
+                chosenPoints[i] = pointIndex
+                i += 1
+        return chosenPoints
+
+    @verbose()
     def planarCloudSampling(self, cloud, cloudNormals, radius = 0.1, normalThreshold = 0.1, coplanarThreshold = 0.01):
         print('Sampling cloud!')
         sampledPoints = []

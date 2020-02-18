@@ -5,9 +5,10 @@ from scipy.spatial.transform import Rotation
 from mpl_toolkits.mplot3d import Axes3D
 from Mesh import Mesh
 from ModelFinder import ModelFinder
-
+import Verbosifier
 
 if __name__ == '__main__':
+    Verbosifier.enableVerbosity()
     with open('Models/SCrewScene.json') as fin:
         cloud = []
         screwCloud = np.array(json.load(fin))
@@ -28,6 +29,7 @@ if __name__ == '__main__':
     ax.scatter(fullCloud[:,0], fullCloud[:,1], fullCloud[:,2])
     count = 0
     for o, r in finder.findInCloud(fullCloud):
+        print(o, r)
         faces = (mesh.Faces @ r.T) + o
         ax.scatter(faces[:,0], faces[:,1], faces[:,2], c = 'r')
         if count > 10:
