@@ -46,19 +46,19 @@ class Mesh:
 
 
         relative = (P.T - origin.reshape((1, 3))) @ R
-        try:
-            #TODO: This is horribly inefficient for just checking 3 points.
-            # Can be optimized by looking at whether or not the point lies inside of the
-            # face that it is supposed to.
-            distance = ProximityQuery(self.trimesh).signed_distance(relative)
-            #TODO: This tolerance should be configurable.
-            if np.any(np.abs(distance) > 0.002):
-                #print('Rejected by distance')
-                return False, None, None
-        except:
-            #TODO: Figure out why this fails sometimes.
-            print(relative)
+        # try:
+        #TODO: This is horribly inefficient for just checking 3 points.
+        # Can be optimized by looking at whether or not the point lies inside of the
+        # face that it is supposed to.
+        distance = ProximityQuery(self.trimesh).signed_distance(relative)
+        #TODO: This tolerance should be configurable.
+        if np.any(np.abs(distance) > 0.002):
+            #print('Rejected by distance')
             return False, None, None
+    # except Exception e:
+        #TODO: Figure out why this fails sometimes.
+        # print(relative)
+        #return False, None, None
         
         return True, origin, R
 

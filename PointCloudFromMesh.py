@@ -3,8 +3,12 @@ import numpy as np
 import sys
 import pyntcloud.io
 import pandas as pd
+import json
+
+
 
 def triangle_area(v1, v2, v3):
+    # Cross product returns area of parallelogram for two vectors -> divide by 2 for triangle area
     return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1), axis = 1)
 
 
@@ -34,12 +38,34 @@ def pointCloudFromMesh(file, n):
     w = 1 - (u + v)
     return np.array(v1_xyz * u + v2_xyz * v + v3_xyz * w)
 
-if __name__ == '__main__':
-    name = sys.argv[1]
-    n = sys.argv[2]
+
+def main(name,n):
     cloud = pointCloudFromMesh(name, int(n))
-    cloudFrame = pd.DataFrame({'x' : cloud[:,0], 'y' : cloud[:,1], 'z' : cloud[:,2]})
+    cloudFrame = pd.DataFrame({'x': cloud[:, 0], 'y': cloud[:, 1], 'z': cloud[:, 2]})
 
     pointCloud = pyntcloud.PyntCloud(cloudFrame)
-    pointCloud.to_file('Cloud_' + name)
+
+    file_split=name.rpartition('/')
+
+    # Check if file has slashes aka global path or subfolder
+    if file_split[1]=='/':
+        output_file = file_split[0]+file_split[1]+'Cloud_'+file_split[2]
+    else: # otherwise it is just the filename
+        output_file = 'Cloud_' + name
+
+
+    # Save as both a ply and a JSON
+    pointCloud.to_file(output_file)
+    output_file = output_file.split('.')[0] + '.json'
+    lst = cloud.tolist()
+    with open(output_file, 'w') as outfile:
+        json.dump(lst, outfile)
+
+
+if __name__ == '__main__':
+    # Name of PLY file to convert and number of random samples to take from mesh (n)
+    name = sys.argv[1]
+    n = sys.argv[2]
+    main(name,n)
+
     

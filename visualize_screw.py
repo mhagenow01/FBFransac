@@ -26,32 +26,40 @@ def showHypotheses(ax, Q:Queue,t):
         ax.scatter(faces[:,0], faces[:,1], faces[:,2], color = 'red')
     return
 
-if __name__ == '__main__':
-    
+def main():
     Verbosifier.enableVerbosity()
-    with open('Models/SCrewScene.json') as fin:
+    with open('Models/Cloud_ToyScrew-Yellow.json') as fin:
         cloud = []
         screwCloud = np.array(json.load(fin))
         for p in screwCloud:
-            if not np.any(np.isnan(np.array(p))) and np.linalg.norm(np.array(p)-np.array((0,0,0.4)))< 0.3:
+            if not np.any(np.isnan(np.array(p))):
+            #if not np.any(np.isnan(np.array(p))) and np.linalg.norm(np.array(p) - np.array((0, 0, 0.4))) < 0.3:
                 cloud.append(p)
         cloud = np.array(cloud)
         fullCloud = cloud[np.random.choice(range(len(cloud)), len(cloud))]
 
-
-    mask = ModelFinder.voxelFilter(fullCloud, size = 0.005)
+    mask = ModelFinder.voxelFilter(fullCloud, size=0.005)
     cloudNormals = pcu.estimate_normals(fullCloud, 5)
     cloud, cloudNormals = fullCloud[mask], cloudNormals[mask]
 
     fig = plt.figure()
-    ax = fig.gca(projection = '3d')
+    ax = fig.gca(projection='3d')
+
+    #print(np.min(cloud[:, 2]))
 
     Q = Queue()
     ani = FuncAnimation(fig, functools.partial(showHypotheses, ax, Q), range(1), repeat_delay=1)
-    ax.scatter(cloud[:,0], cloud[:,1], cloud[:,2])
+    ax.scatter(cloud[:, 0], cloud[:, 1], cloud[:, 2])
 
-    process = Process(target = findHypotheses, args = (Q, cloud, cloudNormals))
+    process = Process(target=findHypotheses, args=(Q, cloud, cloudNormals))
     process.start()
+    ax.set_xlim3d(-.05, 0.05)
+    ax.set_ylim3d(-.05, 0.05)
+    ax.set_zlim3d(-0.05, 0.05)
     plt.show()
     process.terminate()
+
+if __name__ == '__main__':
+    main()
+
 
