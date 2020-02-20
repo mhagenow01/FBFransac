@@ -9,11 +9,7 @@ class ModelFinder:
         self.Model = model
     
     #Don't try to verbose a generator.
-    def findInCloud(self, cloud):
-        cloudNormals = pcu.estimate_normals(cloud, 5)
-        mask = ModelFinder.voxelFilter(cloud, size = 0.005)
-        cloud, cloudNormals = cloud[mask], cloudNormals[mask]
-        #cloud, cloudNormals = self.planarCloudSampling(cloud, cloudNormals, 0.1, 0.3, 0.001)
+    def findInCloud(self, cloud, cloudNormals):
         sceneTree = KDTree(cloud)
         indexes = list(range(len(cloud)))
 
