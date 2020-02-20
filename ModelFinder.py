@@ -60,8 +60,9 @@ class ModelFinder:
                 i += 1
         return chosenPoints
 
+    @staticmethod
     @verbose()
-    def planarCloudSampling(self, cloud, cloudNormals, radius = 0.1, normalThreshold = 0.1, coplanarThreshold = 0.01):
+    def planarCloudSampling(cloud, cloudNormals, radius = 0.1, normalThreshold = 0.1, coplanarThreshold = 0.01):
         print('Sampling cloud!')
         sampledPoints = []
         sampledNormals = []
