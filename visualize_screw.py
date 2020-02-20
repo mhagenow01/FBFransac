@@ -53,4 +53,5 @@ if __name__ == '__main__':
     process = Process(target = findHypotheses, args = (Q, cloud, cloudNormals))
     process.start()
     plt.show()
+    process.terminate()
 
