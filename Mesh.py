@@ -5,6 +5,8 @@ import os
 import time
 import numpy as np
 from scipy.spatial.transform import Rotation
+from pykdtree.kdtree import KDTree
+import itertools
 
 FEATURE_CACHE_DIR = os.path.join(os.curdir,'FeatureCache')
 
@@ -14,19 +16,26 @@ class Mesh:
         self.Radius = self.trimesh.bounding_sphere._data['radius']
         self.Features = None
         self.determineFacesAndNormals()
+        self.FeatureTree = None
         
 
     def getPose(self, P, N):
         #TODO: This only works right now if you sample the points in the "right" order.
         # I.E. the same order that the faces are stored in the feature.
         # Could probably order the points and features somehow consistently.
-        for score, feature in self.Features:
-            F = self.Faces[feature]
-            FN = self.Normals[feature]
+        pointFeature = self._computePointFeature(P, N)
+        _, neighborIdx = self.FeatureTree.query(pointFeature.reshape((1,3)), k = 10, distance_upper_bound = 0.1)
+        for i in neighborIdx[0]:
+            if i == len(self.Features):
+                break
+            score, feature = self.Features[i]
+            for fset in itertools.permutations(feature, 3):
+                F = self.Faces[feature]
+                FN = self.Normals[feature]
 
-            got, *pose = self.getPoseFromCorrespondence(P, N, F, FN)
-            if got:
-                return pose
+                got, *pose = self.getPoseFromCorrespondence(P, N, F, FN)
+                if got:
+                    return pose
         return None
 
     
@@ -35,7 +44,7 @@ class Mesh:
         R = Rotation.match_vectors(N.T, FN.T)[0].as_dcm()
         u, s, vt = np.linalg.svd(R)
         if np.any(np.abs(s ** 2 - 1) > 0.01):
-            #print('Cant rotate')
+            print('Cant rotate')
             return False, None, None
         #TODO:I am pretty sure these two lines are equivalent
         b = np.sum(P * N, axis = 0) - np.sum(F * FN, axis = 0)
@@ -46,7 +55,6 @@ class Mesh:
 
 
         relative = (P.T - origin.reshape((1, 3))) @ R
-        # try:
         #TODO: This is horribly inefficient for just checking 3 points.
         # Can be optimized by looking at whether or not the point lies inside of the
         # face that it is supposed to.
@@ -55,10 +63,6 @@ class Mesh:
         if np.any(np.abs(distance) > 0.002):
             #print('Rejected by distance')
             return False, None, None
-    # except Exception e:
-        #TODO: Figure out why this fails sometimes.
-        # print(relative)
-        #return False, None, None
         
         return True, origin, R
 
@@ -84,6 +88,7 @@ class Mesh:
             self._compileFeatures(**kwargs)
             self._cacheFeatures(**kwargs)
             print(f'Generated {len(self.Features)} features in {time.time() - s:.4}s.')
+        self._createFeatureTree()
         return
             
 
@@ -112,6 +117,23 @@ class Mesh:
         with open(name, 'bw') as fout:
             pickle.dump(self.Features, fout)
         return
+
+    def _createFeatureTree(self):
+        featureValues = []
+        for score, feature in self.Features:
+            normals = self.Normals[feature]
+            featureValues.append([
+                abs(normals[0].dot(normals[1])),
+                abs(normals[0].dot(normals[2])),
+                abs(normals[1].dot(normals[2]))
+            ])
+        featureValues = np.array(featureValues)
+        self.FeatureTree = KDTree(featureValues)
+        return
+
+    def _computePointFeature(self, P, N):
+        ntn = N.T @ N
+        return abs(np.array((ntn[0,1], ntn[0,2], ntn[1, 2])))
 
 
     def getCacheName(self, kwargs):
