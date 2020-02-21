@@ -84,3 +84,38 @@ class ModelFinder:
                 sampledPoints.append(p)
                 sampledNormals.append(n)
         return np.array(sampledPoints), np.array(sampledNormals)
+
+    
+    @staticmethod
+    @verbose()
+    def meanPlanarCloudSampling(cloud, cloudNormals, radius = 0.1, normalThreshold = 0.1, coplanarThreshold = 0.01):
+        print('Sampling cloud!')
+        sampledPoints = []
+        sampledNormals = []
+        count = []
+        for p, n in zip(cloud, cloudNormals):
+            represented = False
+            for i, (p2, n2, c) in enumerate(zip(sampledPoints, sampledNormals, count)):
+                if abs(n.dot(n2)) < 1 - normalThreshold:
+                    continue
+                p_r = p - p2
+                if abs(p_r.dot(n2)) > coplanarThreshold:
+                    continue
+                p_n2 = p_r - p_r.dot(n2) * n2
+                if np.linalg.norm(p_r) > radius:
+                    continue
+                represented = True
+                sampledPoints[i] = (p2 * c + p) / (c + 1)
+                if n.dot(n2) < 0:
+                    n = -n
+                sampledNormals[i] = (n2 * c + n) / (c + 1)
+                count[i] += 1
+                break
+                
+            if not represented:
+                sampledPoints.append(p)
+                sampledNormals.append(n)
+                count.append(1)
+
+        return np.array(sampledPoints), np.array(sampledNormals)
+

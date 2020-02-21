@@ -7,6 +7,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 from pykdtree.kdtree import KDTree
 import itertools
+from Verbosifier import verbose
 
 FEATURE_CACHE_DIR = os.path.join(os.curdir,'FeatureCache')
 
@@ -19,10 +20,12 @@ class Mesh:
         self.FeatureTree = None
         
 
+    @verbose(1000)
     def getPose(self, P, N):
         #TODO: This only works right now if you sample the points in the "right" order.
         # I.E. the same order that the faces are stored in the feature.
         # Could probably order the points and features somehow consistently.
+
         pointFeature = self._computePointFeature(P, N)
         _, neighborIdx = self.FeatureTree.query(pointFeature.reshape((1,3)), k = 10, distance_upper_bound = 0.1)
         for i in neighborIdx[0]:
@@ -39,6 +42,7 @@ class Mesh:
         return None
 
     
+    @verbose(1000)
     def getPoseFromCorrespondence(self, P, N, F, FN):
         R = N @ np.linalg.inv(FN)
         R = Rotation.match_vectors(N.T, FN.T)[0].as_dcm()
@@ -48,13 +52,13 @@ class Mesh:
             return False, None, None
         #TODO:I am pretty sure these two lines are equivalent
         b = np.sum(P * N, axis = 0) - np.sum(F * FN, axis = 0)
-        #b = np.array((p1.dot(n1) - (R@f1).dot(n1), p2.dot(n2) - (R@f2).dot(n2), p3.dot(n3) - (R@f3).dot(n3)))
         origin = np.linalg.solve(N.T, b)
-        if np.any(np.abs(origin)) > 100:
-            return False, None, None
 
 
         relative = (P.T - origin.reshape((1, 3))) @ R
+        # This is slightly better than the lower option
+        if np.any(np.linalg.norm(relative, axis = 1) >  1.25 * self.Radius):
+            return False, None, None
         #TODO: This is horribly inefficient for just checking 3 points.
         # Can be optimized by looking at whether or not the point lies inside of the
         # face that it is supposed to.
@@ -62,11 +66,13 @@ class Mesh:
         #TODO: This tolerance should be configurable.
         if np.any(np.abs(distance) > 0.002):
             #print('Rejected by distance')
+            #print(distance)
             return False, None, None
-        
+            
         return True, origin, R
 
 
+    @verbose()
     def compileFeatures(self, **kwargs):
         """Generate a set of features for a mesh.
         
@@ -92,25 +98,32 @@ class Mesh:
         return
             
 
+    @verbose()
     def _compileFeatures(self, **kwargs):
         N = kwargs.get('N')
         n = len(self.Faces)
         self.Features = []
+        adjacencySet = set(tuple(a) for a in self.trimesh.face_adjacency)
         for i in range(n):
             for j in range(i+1, n):
                 for k in range(j+1, n):
                     ijk = np.array((i,j,k))
                     ns = self.Normals[ijk]
                     ss = self.Sizes[ijk]
-
+                    if ((i,j) not in adjacencySet and (i,k) not in adjacencySet) or \
+                        ((i,j) not in adjacencySet and (j,k) not in adjacencySet) or \
+                        ((i,k) not in adjacencySet and (j,k) not in adjacencySet):
+                        continue
                     if np.linalg.cond(ns) > 1e5:
                         continue
+
                     self.Features.append((np.sum(ss, keepdims= False), ijk))
 
         self.Features = sorted(self.Features, reverse = True, key = lambda x : x[0])[:N]
         return
     
 
+    @verbose()
     def _cacheFeatures(self, **kwargs):
         name = self.getCacheName(kwargs)
         print(f'Writing to feature cache {name}')
@@ -118,6 +131,7 @@ class Mesh:
             pickle.dump(self.Features, fout)
         return
 
+    @verbose()
     def _createFeatureTree(self):
         featureValues = []
         for score, feature in self.Features:

@@ -12,6 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from trimesh.proximity import ProximityQuery
 
 def findHypotheses(Q : Queue, cloud, cloudNormals):
+    Verbosifier.enableVerbosity()
     mesh = Mesh('Models/ToyScrew-Yellow.stl')
     mesh.compileFeatures(N = 10000)
     finder = ModelFinder(mesh)
@@ -69,7 +70,7 @@ def main():
     cloudNormals = pcu.estimate_normals(fullCloud, 10)
     mask = ModelFinder.voxelFilter(fullCloud, size = 0.005)
     cloud, cloudNormals = fullCloud[mask], cloudNormals[mask]
-    #cloud, cloudNormals = ModelFinder.planarCloudSampling(fullCloud, cloudNormals, radius=0.005)
+    #cloud, cloudNormals = ModelFinder.meanPlanarCloudSampling(fullCloud, cloudNormals, 0.01, 0.2, 0.005)
     flipNormals(cloudNormals)
 
     fig = plt.figure()
