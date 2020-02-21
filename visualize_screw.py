@@ -26,6 +26,11 @@ def showHypotheses(ax, Q:Queue,t):
         ax.scatter(faces[:,0], faces[:,1], faces[:,2], color = 'red')
     return
 
+def flipNormals(cloudNormals):
+    for i,n in enumerate(cloudNormals):
+        if n[2] > 0:
+            cloudNormals[i] = -n
+
 def main():
     Verbosifier.enableVerbosity()
     with open('Models/Cloud_ToyScrew-Yellow.json') as fin:
@@ -33,23 +38,25 @@ def main():
         screwCloud = np.array(json.load(fin))
         for p in screwCloud:
             if not np.any(np.isnan(np.array(p))):
-            #if not np.any(np.isnan(np.array(p))) and np.linalg.norm(np.array(p) - np.array((0, 0, 0.4))) < 0.3:
+                # if not np.any(np.isnan(np.array(p))) and np.linalg.norm(np.array(p) - np.array((0, 0, 0.4))) < 0.3:
                 cloud.append(p)
         cloud = np.array(cloud)
-        fullCloud = cloud[np.random.choice(range(len(cloud)), len(cloud))]
+        fullCloud = cloud  # [np.random.choice(range(len(cloud)), len(cloud))]
 
-    mask = ModelFinder.voxelFilter(fullCloud, size=0.005)
-    cloudNormals = pcu.estimate_normals(fullCloud, 5)
-    cloud, cloudNormals = fullCloud[mask], cloudNormals[mask]
+    cloudNormals = pcu.estimate_normals(fullCloud, 20)
+    # mask = ModelFinder.voxelFilter(fullCloud, size = 0.005)
+    # cloud, cloudNormals = fullCloud[mask], cloudNormals[mask]
+    cloud, cloudNormals = ModelFinder.planarCloudSampling(fullCloud, cloudNormals, radius=0.01)
+    flipNormals(cloudNormals)
 
     fig = plt.figure()
     ax = fig.gca(projection='3d')
 
-    #print(np.min(cloud[:, 2]))
-
     Q = Queue()
-    ani = FuncAnimation(fig, functools.partial(showHypotheses, ax, Q), range(1), repeat_delay=1)
+    ani = FuncAnimation(fig, functools.partial(showHypotheses, ax, Q), range(1), repeat_delay=1000)
     ax.scatter(cloud[:, 0], cloud[:, 1], cloud[:, 2])
+    ax.quiver(cloud[:, 0], cloud[:, 1], cloud[:, 2], cloudNormals[:, 0] * 0.01, cloudNormals[:, 1] * 0.01,
+              cloudNormals[:, 2] * 0.01)
 
     process = Process(target=findHypotheses, args=(Q, cloud, cloudNormals))
     process.start()
