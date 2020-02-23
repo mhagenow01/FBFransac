@@ -67,7 +67,7 @@ def main():
         cloud = np.array(cloud)
         fullCloud = cloud  # [np.random.choice(range(len(cloud)), len(cloud))]
 
-    cloudNormals = pcu.estimate_normals(fullCloud, 10)
+    cloudNormals = pcu.estimate_normals(fullCloud, k=10,smoothing_iterations=3)
     mask = ModelFinder.voxelFilter(fullCloud, size = 0.005)
     cloud, cloudNormals = fullCloud[mask], cloudNormals[mask]
     #cloud, cloudNormals = ModelFinder.meanPlanarCloudSampling(fullCloud, cloudNormals, 0.01, 0.2, 0.005)
