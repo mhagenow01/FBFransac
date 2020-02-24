@@ -29,7 +29,7 @@ if __name__ == '__main__':
             v_ind1, v_ind2 = mesh.trimesh.faces[[i,j]]
             distances = np.array(list( map(functools.partial(angleAndDistance, n1, n2, mesh.trimesh.vertices), itertools.product(v_ind1, v_ind2)) ))
             minDistace = np.min(distances, axis = 0)
-            maxDistance = np.max(distances, axis =0)
+            maxDistance = np.max(distances, axis = 0)
             meanDistance = (minDistace + maxDistance) / 2
 
             points.append(meanDistance)
