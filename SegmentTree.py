@@ -96,13 +96,23 @@ class Interval:
         return ret
 
     def __lt__(self, other):
-        return np.all((self.Start - other.Start) > EPSILON) and np.all((other.End - self.End) > EPSILON)
+        for i in range(self.Start.shape[1]):
+            if (self.Start[0,i] - other.Start[0,i]) < EPSILON:
+                return False
+            if (other.End[0,i] - self.End[0,i]) < EPSILON:
+                return False
+        return True
 
     def __le__(self, other):
-        return np.all((self.Start - other.Start) > -EPSILON) and np.all((other.End - self.End) > -EPSILON)
+        for i in range(self.Start.shape[1]):
+            if (self.Start[0,i] - other.Start[0,i]) < -EPSILON:
+                return False
+            if (other.End[0,i] - self.End[0,i]) < -EPSILON:
+                return False
+        return True
 
     def contains(self, p):
-        return not (np.any(p <= self.Start) or np.any(p >= self.End))
+        return np.all((p - self.Start) > EPSILON) and np.all((self.End - p) > EPSILON)
     
     def __bool__(self):
         return bool(np.all((self.End - self.Start) > EPSILON))
@@ -325,10 +335,10 @@ class DisjointIntervalTree:
         # while l < len(self.Children) and self.Children[l].Interval.End[0,0] <= interval.Start[0,0]:
         #     l += 1
         l = self.getLeftIntersectionPoint(interval.Start[0,0])
-        r = len(self.Children) - 1
-        while r >= l and self.Children[r].Interval.Start[0,0] >= interval.End[0,0]:
-            r -= 1
-        #r = self.getRightIntersectionPoint(interval.End[0,0])
+        # r = len(self.Children) - 1
+        # while r >= l and self.Children[r].Interval.Start[0,0] >= interval.End[0,0]:
+        #     r -= 1
+        r = self.getRightIntersectionPoint(interval.End[0,0])
         
         return [l, r]
 
@@ -346,7 +356,7 @@ class DisjointIntervalTree:
         hi = len(self.Children)
         while lo < hi:
             mid = (lo+hi)//2
-            if self.Children[mid].Interval.Start[0,0] < p: lo = mid+1
+            if (p - self.Children[mid].Interval.Start[0,0]) > EPSILON: lo = mid+1
             else: hi = mid
         return lo
 
@@ -401,7 +411,6 @@ class SegmentTree:
         tree = DisjointIntervalTree()
         for i in intervals:
             tree.insertInterval(i.uncross())
-            print(len(tree.Children))
         return tree.allLeaves()
 
     def containsPoint(self, p):
