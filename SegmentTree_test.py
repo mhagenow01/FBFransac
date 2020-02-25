@@ -14,17 +14,24 @@ import Verbosifier
 ###### Test Methods ######
 
 def timedRandomSet():
-    d = 10
-    n = 100000
-    e = 0.001
+    d = 20
+    n = 1000
+    e = 0.01
     error = np.array((e) * d)
     intervals = [
         [n - error, n + error] for n in np.random.randn(n,d)
     ]
     intervals = np.array(intervals)
+    pr = Profile()
+    pr.enable()
     s = time.time()
     tree = SegmentTree(intervals)
+    pr.disable()
+    stats = pstats.Stats(pr).sort_stats('tottime')
+    stats.print_stats()
+
     print(f'Compile time with {n}-{d} dimensional boxes of size {e}: {time.time() - s}')
+    s = time.time()
     for q in np.random.randn(10000,d):
         tree.containsPoint(q)
     print(f'Query time 10k points: {time.time() - s}')
@@ -38,23 +45,24 @@ def imshowTree(tree):
     Z = np.zeros_like(X)
     for i, _x in enumerate(x):
         for j, _y in enumerate(y):
-            Z[i,j] = 1 if tree.containsPoint(np.array((_x, _y))) else 0
+            Z[i,j] = len(tree.stab(np.array((_x, _y))))
     plt.imshow(Z.T, origin = 1, extent=[-4,4,-4,4])
 
 def showSimple():
-    dx = 0.05
+    dx = 0.1
     intervals = [
-        [[x,x], [x+2*dx, x+2*dx]] for x in np.arange(-2, 2, dx)
+        [[x,x], [x+2*dx, x+2*dx]] for x in np.arange(0, 4, dx)
     ]
     intervals = np.array(intervals)
     tree = SegmentTree(intervals)
 
     fig = plt.figure()
     ax = fig.gca()
-    ax.set_xlim([-4,4])
-    ax.set_ylim([-4,4])
-    tree.renderTo2d()
-    imshowTree(tree)
+    ax.set_xlim([-0,6])
+    ax.set_ylim([-0,6])
+    tree.renderTo2d(ax)
+    #imshowTree(tree)
+    plt.show()
 
 
 def angleAndDistance(n1, n2, vertices, verts):
@@ -96,5 +104,6 @@ def testAngleDistanceFeature():
     
 if __name__ == '__main__':
     Verbosifier.enableVerbosity()
-    testAngleDistanceFeature()
-
+    #testAngleDistanceFeature()
+    #showSimple()
+    timedRandomSet()
