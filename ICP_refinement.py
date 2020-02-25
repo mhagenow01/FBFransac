@@ -34,7 +34,7 @@ class ICPrefinement:
         self.cloud = cloud
         self.meshes = meshes
         self.poses = poses
-        self.distance_threshold = 0.02 # 2mm to start
+        self.distance_threshold = 0.05 # 2mm to start
 
     def runICPiteration(self):
 
@@ -69,9 +69,8 @@ class ICPrefinement:
                     s_vals[ii,:] = np.array(self.cloud[closest_index]).reshape((1,3))
                     m_vals[ii,:] = np.array(face_point).reshape((1,3))
 
-
-
             # Add weights to the pairs of points (SKIP FOR NOW)
+            # Can be tuned based on things like normals, etc.
 
 
             # Calculate R and T using least squares SVD
@@ -92,9 +91,10 @@ class ICPrefinement:
             R = np.matmul(V,np.transpose(U))
             t = centroid_m.reshape((3,1))-np.matmul(R,centroid_s.reshape((3,1)))
 
-            # Update poses
-            self.poses[kk] = ((R.T,t.reshape((3,))))
+            # Update poses - NOTE: translation is with respect to currect translation of mesh
+            self.poses[kk] = ((R.T,pose[1].reshape((3,))-t.reshape((3,))))
 
+            # TODO: Store the most recent error and only run if above a tolerance
 
             # Compute the summed error E(R,t)
             # Skip this for now...
@@ -134,6 +134,16 @@ def runICP(Q: Queue, cloud):
                       , [-0.4852273, 0.0455976, 0.8731983]])
     o3 = np.array([-0.12, -0.02, 0.04])
 
+
+    # r1 = np.eye(3)
+    # r2 = np.eye(3)
+    # r3 = np.eye(3)
+    # o1 = np.array([0.0, 0.0, 0.0])
+    # o2 = np.array([-0.11, 0.0, 0.0])
+    # o3 = np.array([0.1, 0.0, 0.0])
+
+
+
     # Create the list of "rough guesses from the FBF-RANSAC
     meshes = []
     meshes.append(mesh_one.Faces)
@@ -162,14 +172,13 @@ def runICP(Q: Queue, cloud):
         r2 = poses[1][0]
         o2 = poses[1][1]
         r3 = poses[2][0]
-        o4 = poses[2][1]
+        o3 = poses[2][1]
         count = count + 1
         print("ICP Iteration: "+str(count))
         print("Screw 1:"+str(o1))
         print("Screw 2:"+str(o2))
         print("Screw 3:"+str(o3))
         print("")
-        #o = o + np.array([0.005, 0.0, 0.0])
 
     return
 
@@ -241,7 +250,7 @@ def run_icp_test():
 def test_ICP_alg():
 
     # Get a scene as a starting point
-    with open('Models/Cloud_ToyScrew-Yellow.json') as fin:
+    with open('Models/Cloud_three_screws_two.json') as fin:
         cloud = []
         screwCloud = np.array(json.load(fin))
         for p in screwCloud:
@@ -259,26 +268,45 @@ def test_ICP_alg():
 
     # Get the mesh
     mesh = Mesh('Models/ToyScrew-Yellow.stl')
-    finder = ModelFinder(mesh)
 
-    initial_rotation = np.array([[0.8799232, -0.2721921, 0.3894183]
-                                    , [0.4538264, 0.2389136, -0.8584648]
-                                    , [0.1406300, 0.9321114, 0.3337536]])
-    initial_translation = np.array([0.01, -0.02, 0.01])
-
-    r = initial_rotation
-    o = initial_translation
+    r1 = np.eye(3)
+    r2 = np.eye(3)
+    r3 = np.eye(3)
+    o1 = np.array([0.0, 0.0, 0.0])
+    o2 = np.array([-0.11, 0.0, 0.0])
+    o3 = np.array([0.1, 0.0, 0.0])
 
     # Create the list of "rough guesses from the FBF-RANSAC
     meshes = []
     meshes.append(mesh.Faces)
+    meshes.append(mesh.Faces)
+    meshes.append(mesh.Faces)
+
     poses = []
-    poses.append((r, o))
+    poses.append((r1, o1))
+    poses.append((r2, o2))
+    poses.append((r3, o3))
 
     icp = ICPrefinement(cloud, meshes, poses)
+    count = 0
+    for ii in range(0,3):
+        icp.getUpdatedMeshes()
+        meshes, poses = icp.getUpdatedMeshes()
+        r1 = poses[0][0]
+        o1 = poses[0][1]
+        r2 = poses[1][0]
+        o2 = poses[1][1]
+        r3 = poses[2][0]
+        o3 = poses[2][1]
 
-    icp.runICPiteration()
-    icp.runICPiteration()
+        print("ICP Iteration: " + str(count))
+        print("Screw 1:" + str(o1))
+        print("Screw 2:" + str(o2))
+        print("Screw 3:" + str(o3))
+        count = count + 1
+        icp.runICPiteration()
+
+
 
 if __name__ == '__main__':
     run_icp_test()
