@@ -8,6 +8,8 @@ from scipy.spatial.transform import Rotation
 from pykdtree.kdtree import KDTree
 import itertools
 from Verbosifier import verbose
+import rtree
+import functools
 
 FEATURE_CACHE_DIR = os.path.join(os.curdir,'FeatureCache')
 
@@ -27,15 +29,12 @@ class Mesh:
         # Could probably order the points and features somehow consistently.
 
         pointFeature = self._computePointFeature(P, N)
-        _, neighborIdx = self.FeatureTree.query(pointFeature.reshape((1,3)), k = 10, distance_upper_bound = 0.1)
-        for i in neighborIdx[0]:
-            if i == len(self.Features):
-                break
-            score, feature = self.Features[i]
-            for fset in itertools.permutations(feature, 3):
+        faceSetsAndBounds = self.FeatureTree.intersection(pointFeature, objects = True)
+        faceSets = [i[0] for i in faceSetsAndBounds]
+        for faceSet in faceSets:
+            for fset in itertools.permutations(faceSet, 3):
                 F = self.Faces[feature]
                 FN = self.Normals[feature]
-
                 got, *pose = self.getPoseFromCorrespondence(P, N, F, FN)
                 if got:
                     return pose
@@ -110,10 +109,10 @@ class Mesh:
                     ijk = np.array((i,j,k))
                     ns = self.Normals[ijk]
                     ss = self.Sizes[ijk]
-                    if ((i,j) not in adjacencySet and (i,k) not in adjacencySet) or \
-                        ((i,j) not in adjacencySet and (j,k) not in adjacencySet) or \
-                        ((i,k) not in adjacencySet and (j,k) not in adjacencySet):
-                        continue
+                    # if ((i,j) not in adjacencySet and (i,k) not in adjacencySet) or \
+                    #     ((i,j) not in adjacencySet and (j,k) not in adjacencySet) or \
+                    #     ((i,k) not in adjacencySet and (j,k) not in adjacencySet):
+                    #     continue
                     if np.linalg.cond(ns) > 1e5:
                         continue
 
@@ -133,26 +132,51 @@ class Mesh:
 
     @verbose()
     def _createFeatureTree(self):
-        featureValues = []
-        for score, feature in self.Features:
+        featureVectors = []
+
+        for i, (score, feature) in enumerate(self.Features):
             normals = self.Normals[feature]
-            featureValues.append([
+            # Format for rtree is x_low, y_low, z_low... , x_high, y_high, z_high...
+            featureVector = [
+                abs(normals[0].dot(normals[1])),
+                abs(normals[0].dot(normals[2])),
+                abs(normals[1].dot(normals[2]))
+            ]
+            lowDistance, highDistance = list(zip(*list(self.distanceRange(f1, f2) for f1,f2 in itertools.combinations(range(3), 2))))
+            featureVector.extend(lowDistance)
+            featureVector.extend([
                 abs(normals[0].dot(normals[1])),
                 abs(normals[0].dot(normals[2])),
                 abs(normals[1].dot(normals[2]))
             ])
-        featureValues = np.array(featureValues)
-        self.FeatureTree = KDTree(featureValues)
+            featureVector.extend(highDistance)
+
+            # Rtree needs an ID for the rectangle (i), the bounds (featureVector), and can accept something to 
+            # associate with that rectangle (the face set in this case)
+            featureVectors.append((i, featureVector, feature))
+
+        # Just grab the first one to check what the dimension is
+        prop = rtree.index.Property()
+        prop.dimension = len(featureVectors[0][1]) // 2
+        self.FeatureTree = rtree.index.Index(featureVectors, properties = prop, objects = 'raw')
         return
 
     def _computePointFeature(self, P, N):
+        featureVector = []
         ntn = N.T @ N
-        return abs(np.array((ntn[0,1], ntn[0,2], ntn[1, 2])))
+        normals = abs(np.array([ntn[0,1], ntn[0,2], ntn[1, 2]]))
+        distances = []
+        for i,j in itertools.combinations(range(3), 2):
+            distances.append(np.linalg.norm(P[:,i] - P[:,j]))
+        featureVector.extend(normals)
+        featureVector.extend(distances)
+        featureVector.extend(np.array(featureVector) + 0.000001)
+        return featureVector
 
 
     def getCacheName(self, kwargs):
         name = '-'.join(f'{k}_{v}' for k,v in kwargs.items())
-        version = '0.1'
+        version = '0.3.1'
         return os.path.join(FEATURE_CACHE_DIR,f'{name}.{version}.ftr')
 
 
@@ -170,3 +194,11 @@ class Mesh:
             self.Normals[i] /= np.linalg.norm(self.Normals[i])
             self.Faces[i] = np.mean(mesh.vertices[v_ind], axis = 0)
         return
+
+    def distanceRange(self, f1, f2):
+        distances = np.array(list( map(self.vertDistance, itertools.product(self.trimesh.faces[f1], self.trimesh.faces[f2])) ))
+        return np.min(distances), np.max(distances)
+
+    def vertDistance(self, v12):
+        v1, v2 = v12
+        return np.linalg.norm(self.trimesh.vertices[v1] - self.trimesh.vertices[v2])
