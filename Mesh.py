@@ -29,12 +29,12 @@ class Mesh:
         # Could probably order the points and features somehow consistently.
 
         pointFeature = self._computePointFeature(P, N)
-        faceSetsAndBounds = self.FeatureTree.intersection(pointFeature, objects = True)
-        faceSets = [i[0] for i in faceSetsAndBounds]
+        faceSets = self.FeatureTree.intersection(pointFeature, objects = True)
         for faceSet in faceSets:
-            for fset in itertools.permutations(faceSet, 3):
-                F = self.Faces[feature]
-                FN = self.Normals[feature]
+            for fset in itertools.permutations(faceSet.object, 3):
+                _lfset = list(fset)
+                F = self.Faces[_lfset]
+                FN = self.Normals[_lfset]
                 got, *pose = self.getPoseFromCorrespondence(P, N, F, FN)
                 if got:
                     return pose
@@ -109,10 +109,10 @@ class Mesh:
                     ijk = np.array((i,j,k))
                     ns = self.Normals[ijk]
                     ss = self.Sizes[ijk]
-                    # if ((i,j) not in adjacencySet and (i,k) not in adjacencySet) or \
-                    #     ((i,j) not in adjacencySet and (j,k) not in adjacencySet) or \
-                    #     ((i,k) not in adjacencySet and (j,k) not in adjacencySet):
-                    #     continue
+                    if ((i,j) not in adjacencySet and (i,k) not in adjacencySet) or \
+                        ((i,j) not in adjacencySet and (j,k) not in adjacencySet) or \
+                        ((i,k) not in adjacencySet and (j,k) not in adjacencySet):
+                        continue
                     if np.linalg.cond(ns) > 1e5:
                         continue
 
@@ -137,17 +137,18 @@ class Mesh:
         for i, (score, feature) in enumerate(self.Features):
             normals = self.Normals[feature]
             # Format for rtree is x_low, y_low, z_low... , x_high, y_high, z_high...
+            innerProductTolerance = 0.05
             featureVector = [
-                abs(normals[0].dot(normals[1])),
-                abs(normals[0].dot(normals[2])),
-                abs(normals[1].dot(normals[2]))
+                abs(normals[0].dot(normals[1])) - innerProductTolerance,
+                abs(normals[0].dot(normals[2])) - innerProductTolerance,
+                abs(normals[1].dot(normals[2])) - innerProductTolerance
             ]
             lowDistance, highDistance = list(zip(*list(self.distanceRange(f1, f2) for f1,f2 in itertools.combinations(range(3), 2))))
             featureVector.extend(lowDistance)
             featureVector.extend([
-                abs(normals[0].dot(normals[1])),
-                abs(normals[0].dot(normals[2])),
-                abs(normals[1].dot(normals[2]))
+                abs(normals[0].dot(normals[1])) + innerProductTolerance,
+                abs(normals[0].dot(normals[2])) + innerProductTolerance,
+                abs(normals[1].dot(normals[2])) + innerProductTolerance
             ])
             featureVector.extend(highDistance)
 
