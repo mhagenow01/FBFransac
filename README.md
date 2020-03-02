@@ -17,7 +17,7 @@ package install directions:
 
 `pip3 install numpy`
 
-`pip3 install rtree'`
+`pip3 install rtree`
 
 `sudo apt-get install libspatialindex-dev`
 
@@ -28,6 +28,8 @@ package install directions:
 `pip3 install pykdtree`
 
 `pip3 install pyntcloud`
+
+`pip3 install progressbar`
 
 or `conda install -c conda-forge point_cloud_utils`
 
