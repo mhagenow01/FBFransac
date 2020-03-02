@@ -10,6 +10,7 @@ import itertools
 from Verbosifier import verbose
 import rtree
 import functools
+import progressbar
 
 FEATURE_CACHE_DIR = os.path.join(os.curdir,'FeatureCache')
 
@@ -37,7 +38,7 @@ class Mesh:
                 FN = self.Normals[_lfset]
                 got, *pose = self.getPoseFromCorrespondence(P, N, F, FN)
                 if got:
-                    return pose
+                    yield pose
         return None
 
     
@@ -103,20 +104,26 @@ class Mesh:
         n = len(self.Faces)
         self.Features = []
         adjacencySet = set(tuple(a) for a in self.trimesh.face_adjacency)
+        bar = progressbar.ProgressBar(n * (n - 1) * (n - 2) / 6, widgets=[progressbar.Bar('=', '[', ']')])
+        count = 0
+        bar.start()
         for i in range(n):
             for j in range(i+1, n):
                 for k in range(j+1, n):
+                    count += 1
                     ijk = np.array((i,j,k))
                     ns = self.Normals[ijk]
                     ss = self.Sizes[ijk]
-                    if ((i,j) not in adjacencySet and (i,k) not in adjacencySet) or \
-                        ((i,j) not in adjacencySet and (j,k) not in adjacencySet) or \
-                        ((i,k) not in adjacencySet and (j,k) not in adjacencySet):
-                        continue
+                    # if ((i,j) not in adjacencySet and (i,k) not in adjacencySet) or \
+                    #     ((i,j) not in adjacencySet and (j,k) not in adjacencySet) or \
+                    #     ((i,k) not in adjacencySet and (j,k) not in adjacencySet):
+                    #     continue
                     if np.linalg.cond(ns) > 1e5:
                         continue
 
                     self.Features.append((np.sum(ss, keepdims= False), ijk))
+                    bar.update(count)
+        bar.finish()
 
         self.Features = sorted(self.Features, reverse = True, key = lambda x : x[0])[:N]
         return
@@ -134,27 +141,29 @@ class Mesh:
     def _createFeatureTree(self):
         featureVectors = []
 
-        for i, (score, feature) in enumerate(self.Features):
-            normals = self.Normals[feature]
+        for i, (score, faceSet) in enumerate(self.Features):
+            normals = self.Normals[faceSet]
             # Format for rtree is x_low, y_low, z_low... , x_high, y_high, z_high...
-            innerProductTolerance = 0.05
+            innerProductTolerance = 0.01
             featureVector = [
                 abs(normals[0].dot(normals[1])) - innerProductTolerance,
                 abs(normals[0].dot(normals[2])) - innerProductTolerance,
                 abs(normals[1].dot(normals[2])) - innerProductTolerance
             ]
-            lowDistance, highDistance = list(zip(*list(self.distanceRange(f1, f2) for f1,f2 in itertools.combinations(range(3), 2))))
+            lowDistance, highDistance = list(zip(*list(self.distanceRange(f1, f2) for f1,f2 in itertools.combinations(faceSet, 2))))
             featureVector.extend(lowDistance)
             featureVector.extend([
                 abs(normals[0].dot(normals[1])) + innerProductTolerance,
                 abs(normals[0].dot(normals[2])) + innerProductTolerance,
                 abs(normals[1].dot(normals[2])) + innerProductTolerance
+                
             ])
             featureVector.extend(highDistance)
 
+
             # Rtree needs an ID for the rectangle (i), the bounds (featureVector), and can accept something to 
             # associate with that rectangle (the face set in this case)
-            featureVectors.append((i, featureVector, feature))
+            featureVectors.append((i, featureVector, faceSet))
 
         # Just grab the first one to check what the dimension is
         prop = rtree.index.Property()

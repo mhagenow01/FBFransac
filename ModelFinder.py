@@ -26,9 +26,8 @@ class ModelFinder:
             
             if np.linalg.cond(np.column_stack((n1,n2,n3))) > 1e5:
                 continue
-
-            pose = self.Model.getPose(np.column_stack((p1,p2,p3)), np.column_stack((n1, n2, n3)))
-            if pose is not None:
+            
+            for pose in self.Model.getPose(np.column_stack((p1,p2,p3)), np.column_stack((n1, n2, n3))):
                 yield pose
 
         return None
