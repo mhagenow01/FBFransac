@@ -16,6 +16,7 @@ def findHypotheses(Q : Queue, cloud, cloudNormals):
     mesh = Mesh('Models/ToyScrew-Yellow.stl')
     #mesh = Mesh('Models/three_screws_two.ply')
     mesh.compileFeatures(N = 10000)
+    mesh.cacheMeshDistance(0.001)
     finder = ModelFinder(mesh)
     bestScore = None
     for o, r in finder.findInCloud(cloud, cloudNormals):
@@ -27,7 +28,7 @@ def findHypotheses(Q : Queue, cloud, cloudNormals):
     return
 
 def scoreHypothesis(mesh, cloud, o, r):
-    distances = ProximityQuery(mesh.trimesh).signed_distance((cloud - o) @ r)
+    distances = mesh.distanceQuery((cloud - o) @ r)
     fitPoints = 0
     for d in distances:
         if abs(d) < 0.002:
@@ -58,7 +59,7 @@ def flipNormals(cloudNormals):
 
 def main():
     Verbosifier.enableVerbosity()
-    with open('Models/Cloud_three_screws_two.json') as fin:
+    with open('Models/Cloud_ToyScrew-Yellow.json') as fin:
         cloud = []
         screwCloud = np.array(json.load(fin))
         for p in screwCloud:
@@ -68,7 +69,7 @@ def main():
         cloud = np.array(cloud)
         fullCloud = cloud  # [np.random.choice(range(len(cloud)), len(cloud))]
 
-    cloudNormals = pcu.estimate_normals(fullCloud, k=10,smoothing_iterations=3)
+    cloudNormals = pcu.estimate_normals(fullCloud, k=10,smoothing_iterations=10)
     mask = ModelFinder.voxelFilter(fullCloud, size = 0.005)
     cloud, cloudNormals = fullCloud[mask], cloudNormals[mask]
     #cloud, cloudNormals = ModelFinder.meanPlanarCloudSampling(fullCloud, cloudNormals, 0.01, 0.2, 0.005)
@@ -85,9 +86,9 @@ def main():
 
     process = Process(target=findHypotheses, args=(Q, cloud, cloudNormals))
     process.start()
-    #ax.set_xlim3d(-.05, 0.05)
-    #ax.set_ylim3d(-.05, 0.05)
-    #ax.set_zlim3d(-0.05, 0.05)
+    ax.set_xlim3d(-.05, 0.05)
+    ax.set_ylim3d(-.05, 0.05)
+    ax.set_zlim3d(-0.05, 0.05)
     plt.show()
     process.terminate()
 
