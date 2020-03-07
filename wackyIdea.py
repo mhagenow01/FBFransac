@@ -14,6 +14,7 @@ from scipy import ndimage
 origin = np.array((-0.03, -0.03, -0.03))
 extent = np.array((0.03, 0.03, 0.03))
 binsize = 0.0005
+theta = np.pi / 3
 def distanceFieldFromCloud(cloud):
     # origin = np.min(cloud, axis = 0) - 30 * binsize
     # extent = np.max(cloud, axis = 0) + 30 * binsize
@@ -34,25 +35,25 @@ def derivatives(cloud):
         [[-100, -0, 100]]
     ]))[1:-1,1:-1]
     zy = correlate(Z, np.array([
-        [[-100],
+        [[-1],
         [-0],
-        [100]]
-    ]))[1:-1,1:-1]
+        [1]]
+    ]))[1:-1,1:-1] / (2 * binsize)
     zz = correlate(Z, np.array([
-        [[-100]], [[-0]], [[100]]
-    ]))[1:-1,1:-1]
+        [[-1]], [[-0]], [[1]]
+    ]))[1:-1,1:-1] / (2 * binsize)
 
     zxx = correlate(zx, np.array([
         [[-1, -0, 1]]
-    ]))
+    ])) / (2 * binsize)
     zyy = correlate(zy, np.array([
         [[-1],
         [-0],
         [1]]
-    ]))
+    ])) / (2 * binsize)
     zzz = correlate(zz, np.array([
         [[-1]], [[-0]], [[1]]
-    ]))
+    ])) / (2 * binsize)
 
     return Z, zx, zy, zz, zxx, zyy, zzz
 
@@ -91,11 +92,14 @@ if __name__ == '__main__':
         noisyCloud = np.array(json.load(fin))
 
     z, zx, zy, zz, zxx, zyy, zzz = derivatives(realCloud)
-    nz, nzx, nzy, nzz, nzxx, nzyy, nzzz = derivatives(noisyCloud)
+    nz, nzx, nzy, nzz, nzxx, nzyy, nzzz = derivatives(realCloud)
 
     level = np.zeros_like(zxx)
-    threshold = 0.2
-    mask = (abs(nzxx + nzyy + nzzz) > threshold) & (abs(nz[1:-1,1:-1]) > 0.0035) & (abs(nz[1:-1,1:-1]) < 0.0045)
+    # This should be the approximate divergence across 
+    # a medial axis between two faces with an angle of (pi - theta)
+    # between them.
+    threshold = np.sqrt(2 - 2 * np.cos(theta)) / binsize
+    mask = (abs(nzxx + nzyy + nzzz) > threshold) & (abs(nz[1:-1,1:-1]) > 0.0015) #& (abs(nz[1:-1,1:-1]) < 0.0015)
     level[mask] = 1
     #mask = (abs(zxx + zyy) > threshold) & (abs(z[1:-1,1:-1]) > 0.002) & (abs(z[1:-1,1:-1]) < 0.01)
     #level[mask] = -1
@@ -104,6 +108,6 @@ if __name__ == '__main__':
     ax = plt.gca(projection = '3d')
     ax.scatter(cloud[:,0], cloud[:,1], cloud[:,2])
     plt.figure()
-    plt.hist(nz[1:-1,1:-1][mask].flatten(), bins = 50)
+    plt.hist(abs(nzxx + nzyy + nzzz).flatten(), bins = 200)
     #ax.quiver(zx * 100, zy * 100, headwidth = 3, headlength = 5, minlength = 0.001, units = 'xy')
     plt.show()
