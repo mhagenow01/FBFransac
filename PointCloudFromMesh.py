@@ -1,4 +1,5 @@
 from pyntcloud.io import read_ply
+import trimesh
 import numpy as np 
 import sys
 import pyntcloud.io
@@ -13,13 +14,11 @@ def triangle_area(v1, v2, v3):
 
 
 def pointCloudFromMesh(file, n):
-    scene = read_ply(file)
-    scene_xyz = scene['points'][['x','y','z']].values
-    
-    v1_xyz = scene_xyz[scene['mesh']['v1']]
-    v2_xyz = scene_xyz[scene['mesh']['v2']]
-    v3_xyz = scene_xyz[scene['mesh']['v3']]
+    mesh = trimesh.load(file)
 
+    v1_xyz = mesh.vertices[mesh.faces[:,0]]
+    v2_xyz = mesh.vertices[mesh.faces[:,1]]
+    v3_xyz = mesh.vertices[mesh.faces[:,2]]
 
     areas = triangle_area(v1_xyz, v2_xyz, v3_xyz)
     prob = areas / areas.sum()
@@ -55,7 +54,6 @@ def main(name,n):
 
 
     # Save as both a ply and a JSON
-    pointCloud.to_file(output_file)
     output_file = output_file.split('.')[0] + '.json'
     lst = cloud.tolist()
     with open(output_file, 'w') as outfile:
