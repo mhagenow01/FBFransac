@@ -5,6 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import time
 import json
 from Skeletonizer import skeletonizer, cloudFromMask
+import Verbosifier
 
 
 def plotMedialPoints(skeleton):
@@ -19,6 +20,7 @@ def plotMedialPoints(skeleton):
     return mask
 
 if __name__ == '__main__':
+    Verbosifier.enableVerbosity()
     mesh = Mesh('Models/ToyScrew-Yellow.stl')
 
     with open('Models\Cloud_ToyScrew-Yellow.json') as fin:
@@ -28,7 +30,6 @@ if __name__ == '__main__':
         noisyCloud = noisyCloud[np.linalg.norm(noisyCloud, axis = 1) < 0.5]
 
     print('making scene')
-    print(noisyCloud.shape)
     mask = skeletonizer(noisyCloud)
     plotMedialPoints(mask)
 

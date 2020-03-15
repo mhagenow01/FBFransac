@@ -6,6 +6,7 @@ from cProfile import Profile
 from scipy.ndimage.morphology import distance_transform_edt
 from scipy.ndimage import correlate
 import scipy.ndimage.morphology
+from Graph import Graph
 
 # This bounding box is just a hard-coded region around the hand.
 origin = np.array((-0.3,-0.2,0.2))
@@ -13,8 +14,8 @@ extent = np.array((0, 0, 0.5))
 
 # These parameters are specific to the mesh.
 binsize = 0.001
-minDistance = 0.004
-maxDistance = 0.008
+minDistance = 0.003
+maxDistance = 0.006
 
 
 
@@ -65,31 +66,18 @@ def findSkeleton(distanceField):
     fx, fy, fz = gradient(distanceField)
     return (fx**2 + fy**2 + fz**2 < 0.8) & (distanceField > minDistance) & (distanceField < maxDistance)
 
+def graphIterate(skeleton, n = 10, minNodes = 500):
+    g = Graph()
+    g.fromMatrix(skeleton)
+    g.prune(n, minNodes)
+    skeleton = g.toMatrix(np.zeros_like(skeleton, dtype = np.bool))
+    return skeleton
+
 def skeletonizer(cloud):
-    ''' Rough algorithm - 
-        
-        Compute distance field.
-        Find where the min function is active, and within a narrow
-        distance range.
-        While we still have points left, do a special kind of erosion on the 
-        image. The result is a cluster of points that correspond to the "center"
-        of the skeleton graph.
-    '''
     field = distanceFieldFromCloud(cloud)
     skeleton = findSkeleton(field)
-    f = np.ones((3,3,3))
-    n = 10
-    count = correlate(skeleton.astype(np.int), f)
-    c = np.sum(skeleton)
-    lastC = None
-    while np.sum(skeleton[count >= n]) > 20:
-        skeleton[count < n] = 0
-        count = correlate(skeleton.astype(np.int), f)
-        c = np.sum(skeleton)
-        print(c)
-        if c == lastC:
-            n+=1
-        lastC = c
-    print(f'Final: {np.sum(skeleton)}')
-    print(f'Distances: {field[skeleton]}')
-    return skeleton
+
+    skg = graphIterate(skeleton)
+    print(f'Final: {np.sum(skg)}')
+    print(f'Distances: {field[skg]}')
+    return skg
