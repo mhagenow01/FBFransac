@@ -9,9 +9,13 @@ from Skeletonizer import skeletonizer, cloudFromMask
 
 def plotMedialPoints(skeleton):
     cloud = cloudFromMask(skeleton)
+    print(len(cloud))
 
     ax = plt.gca(projection = '3d')
     ax.scatter(cloud[:,0], cloud[:,1], cloud[:,2])
+    ax.set_xlim([-0.3, 0])
+    ax.set_ylim([-0.2, 0])
+    ax.set_zlim([0.2, 0.5])
     return mask
 
 if __name__ == '__main__':
@@ -19,25 +23,15 @@ if __name__ == '__main__':
 
     with open('Models\Cloud_ToyScrew-Yellow.json') as fin:
         realCloud = np.array(json.load(fin))
-        #realCloud = realCloud[realCloud[:,0] > 0]
-    with open('Models\Cloud_ToyScrew-Yellow-0.0005.json') as fin:
+    with open('Models\ScrewScene.json') as fin:
         noisyCloud = np.array(json.load(fin))
-        noisyCloud = noisyCloud[noisyCloud[:,0] > 0]
+        noisyCloud = noisyCloud[np.linalg.norm(noisyCloud, axis = 1) < 0.5]
 
-    mask = skeletonizer(realCloud)
-    plotMedialPoints(mask)
+    print('making scene')
+    print(noisyCloud.shape)
     mask = skeletonizer(noisyCloud)
     plotMedialPoints(mask)
 
-
-
-    #plt.figure()
-    # ax = plt.gca(projection = '3d')
-    # colors = np.array(('r', 'g', 'b', 'yellow'))
-    # for i in range(1, n):
-    #     mask = labels == i
-    #     if np.sum(mask) > 5:
-    #         extended = extendedCloud(mask, distance, div)
-    #         ax.scatter(extended[:,0], extended[:,1], extended[:,2], s = 30)
-
+    ax = plt.gca(projection = '3d')
+    ax.scatter(noisyCloud[:,0], noisyCloud[:,1], noisyCloud[:,2])
     plt.show()
