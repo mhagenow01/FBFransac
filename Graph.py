@@ -2,12 +2,17 @@ import numpy as np
 import itertools
 from Verbosifier import verbose
 import Verbosifier
+from queue import Queue
 from scipy.ndimage import correlate
+from collections import defaultdict
+
 class Node:
-    def __init__(self, index):
+    def __init__(self, index, value):
         self.Adjacent = set()
         self.t_ind = tuple(index)
         self.Index = index
+        self.Value = value
+        self.Label = None
     
     def removeFromAdjacent(self):
         for a in self.Adjacent:
@@ -21,8 +26,6 @@ class Node:
 
     def __repr__(self):
         return repr(self.t_ind)
-    
-
 
 class Graph:
     def __init__(self):
@@ -39,10 +42,54 @@ class Graph:
                 yield neighbor
         return None
 
+    def labelConnectedComponents(self):
+        label = 0
+        for v in self.Nodes.values():
+            if v.Label is None:
+                self._labelComponent(v, label)
+                label += 1
+
+    def _labelComponent(self, node, label):
+        node.Label = label
+        for n in node.Adjacent:
+            if n.Label is None:
+                self._labelComponent(n, label)
+        return
+    
+    def connectedComponentCenters(self, minValue, maxValue):
+        centers = defaultdict(lambda : (None, -1))
+        for n in self.Nodes.values():
+            if n.Value >= minValue and n.Value <= maxValue:
+                bestN, bestD = centers[n.Label]
+                d = self.maxDistance(n)
+                if d > bestD:
+                    centers[n.Label] = (n, d)
+        return zip(*centers.values())
+    
+    def maxDistance(self, node):
+        seen = set()
+        q = Queue()
+        maxD = 0
+        q.put((node, 0))
+        while not q.empty():
+            n, d = q.get()
+            maxD = max(d, maxD)
+            if n in seen:
+                continue
+            seen.add(n)
+            for a in n.Adjacent:
+                if a not in seen:
+                    q.put((a, d+1))
+        return maxD
+
+
     def toMatrix(self, m):
         for k,v in self.Nodes.items():
-            m[k] = len(v.Adjacent)+1 # remove this?
+            m[k] = v.Value
         return m
+
+    def toCloud(self, nodes):
+        return np.array([n.Index for n in nodes]), np.array([n.Value for n in nodes])
 
     @verbose()
     def fromMatrix(self, m):
@@ -54,7 +101,7 @@ class Graph:
         for i in indices:
             t_i = tuple(i)
             if t_i not in self.Nodes.keys():
-                node = Node(i)
+                node = Node(i, m[t_i])
                 self.Nodes[t_i] = node
                 for offset in offsets:
                     n = i + offset

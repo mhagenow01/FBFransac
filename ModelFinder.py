@@ -3,118 +3,66 @@ import point_cloud_utils as pcu
 import numpy as np
 from pykdtree.kdtree import KDTree
 from Verbosifier import verbose
+from KeyPointGenerator import KeyPointGenerator
 
 class ModelFinder:
-    def __init__(self, model):
-        self.Model = model
+    def __init__(self):
+        self.Models = []
+        self.KeyPointGenerators = []
+        self.Scene = None
     
-    #Don't try to verbose a generator.
-    def findInCloud(self, cloud, cloudNormals):
-        sceneTree = KDTree(cloud)
-        indexes = list(range(len(cloud)))
+    def _getKeyPointGenFromMesh(self, mesh):
+        # Currently hard coded for the screw model
+        return KeyPointGenerator(0.003, 0.006, 10, 500)
 
-        r = self.Model.Radius
-        while True:
-            i = np.random.choice(indexes, 1)[0]
-            p1 = cloud[i]
-            n1 = cloudNormals[i]
-            neighborIdx = [ii for ii in sceneTree.query(p1.reshape((1,3)), 50, distance_upper_bound = 2 * r)[1][0] if ii < len(cloud) and ii != i]
-            j, k = np.random.choice(neighborIdx, 2, replace = False)
-
-            p2, p3 = cloud[j], cloud[k]
-            n2, n3 = cloudNormals[j], cloudNormals[k]
-            
-            if np.linalg.cond(np.column_stack((n1,n2,n3))) > 1e5:
-                continue
-            
-            for pose in self.Model.getPose(np.column_stack((p1,p2,p3)), np.column_stack((n1, n2, n3))):
-                yield pose
-
-        return None
+    @verbose()
+    def set_meshes(self, meshes):
+        self.Models = meshes
+        for m in meshes:
+            m.cacheMeshDistance(KeyPointGenerator.BinSize)
+            self.KeyPointGenerators.append(self._getKeyPointGenFromMesh(m))
     
-    @staticmethod
     @verbose()
-    def voxelFilter(cloud, size = 0.01):
-        min = np.min(cloud, axis = 0)
-        max = np.max(cloud, axis = 0)
-        nBins = np.array(np.ceil((max - min) / size), dtype = np.int)
-        grid = np.full(nBins, -1, dtype = np.int)
-        nPoints = 0
-        for i, p in enumerate(cloud):
-            index = np.array(np.floor((p - min) / size), dtype = np.int)
-            t_index = tuple(index)
-            j = grid[t_index]
-            if j == -1:
-                grid[t_index] = i
-                nPoints += 1
-            else:
-                gridPos = min + (index / nBins) * (max - min)
-                if np.linalg.norm(p - gridPos) < np.linalg.norm(cloud[grid[t_index]] - gridPos):
-                    grid[t_index] = i
-        chosenPoints = np.zeros(nPoints, dtype = np.int)
-        i = 0
-        for pointIndex in grid.flatten():
-            if pointIndex > -1:
-                chosenPoints[i] = pointIndex
-                i += 1
-        return chosenPoints
+    def set_scene(self, cloud):
+        self.Scene = cloud
+        KeyPointGenerator.setSceneDistanceFieldFromCloud(cloud)
 
-    @staticmethod
-    @verbose()
-    def planarCloudSampling(cloud, cloudNormals, radius = 0.1, normalThreshold = 0.1, coplanarThreshold = 0.01):
-        print('Sampling cloud!')
-        sampledPoints = []
-        sampledNormals = []
-        for p, n in zip(cloud, cloudNormals):
-            represented = False
-            for p2, n2 in zip(sampledPoints, sampledNormals):
-                if abs(n.dot(n2)) < 1 - normalThreshold:
-                    continue
-                p_r = p - p2
-                if abs(p_r.dot(n2)) > coplanarThreshold:
-                    continue
-                p_n2 = p_r - p_r.dot(n2) * n2
-                if np.linalg.norm(p_r) > radius:
-                    continue
-                represented = True
-                break
-                
-            if not represented:
-                sampledPoints.append(p)
-                sampledNormals.append(n)
-        return np.array(sampledPoints), np.array(sampledNormals)
 
+    def set_resolution(self, res):
+        KeyPointGenerator.BinSize = res
     
-    @staticmethod
+
     @verbose()
-    def meanPlanarCloudSampling(cloud, cloudNormals, radius = 0.1, normalThreshold = 0.1, coplanarThreshold = 0.01):
-        print('Sampling cloud!')
-        sampledPoints = []
-        sampledNormals = []
-        count = []
-        for p, n in zip(cloud, cloudNormals):
-            represented = False
-            for i, (p2, n2, c) in enumerate(zip(sampledPoints, sampledNormals, count)):
-                if abs(n.dot(n2)) < 1 - normalThreshold:
-                    continue
-                p_r = p - p2
-                if abs(p_r.dot(n2)) > coplanarThreshold:
-                    continue
-                p_n2 = p_r - p_r.dot(n2) * n2
-                if np.linalg.norm(p_r) > radius:
-                    continue
-                represented = True
-                sampledPoints[i] = (p2 * c + p) / (c + 1)
-                if n.dot(n2) < 0:
-                    n = -n
-                sampledNormals[i] = (n2 * c + n) / (c + 1)
-                count[i] += 1
-                break
-                
-            if not represented:
-                sampledPoints.append(p)
-                sampledNormals.append(n)
-                count.append(1)
+    def findInstances(self):
+        instances = []
+        for m,kg in zip(self.Models, self.KeyPointGenerators):
+            # First generate hypotheses of scene model correspondences.
+            sceneKeyPoints = kg.keyPointsFromScene()
+            meshKeyPoints = kg.keyPointsFromField(m.DistanceCache) + m.BoundingBoxOrigin
+            # TODO: Allow for potentially multiple keypoints per mesh?
+            meshKeyPoints = meshKeyPoints[0:1,:]
+            for kp in sceneKeyPoints:
+                pose = self.determinePose(m, meshKeyPoints, kp)
+                if self.validatePose(m, pose, self.Scene):
+                    instances.append((m, pose))
 
-        return np.array(sampledPoints), np.array(sampledNormals)
+        return instances
 
+    def determinePose(self, mesh, meshKp, sceneKp):
+        ''' Given a mesh and a correspondence between a point in mesh space and
+            a point in scene space, determine the best fit pose of the mesh.
+        '''
+        # TODO: Actually do something here, rather than just picking a nearby point.
+        # This is where some ICP would go.
+        return sceneKp, np.eye(3)
+
+    def validatePose(self, mesh, pose, scene):
+        ''' Given a mesh, pose, and representation of the scene, figure out how
+            good the pose is at describing the scene.
+
+            Then return True if its good enough, and False otherwise.
+        '''
+        # TODO: Actually do something, like compare the distance fields 
+        # of the scene and the mesh or something.
+
+        return True
