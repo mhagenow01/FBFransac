@@ -47,56 +47,31 @@ class ICPrefinement:
             pose = self.poses[kk]
 
             # Compute the nearest point in the point cloud for each point in the model
-            s_vals = np.zeros((len(mesh),3))
-            m_vals = np.zeros((len(mesh),3))
 
-            count = 0
+            face_points = mesh @ pose[0].T + pose[1].reshape((1,3))
+            distances, closest_indices = self.cloudKdtree.query(face_points, 1)
+            closest_points = self.cloud[closest_indices]
 
-            for ii in range(0,len(mesh)):
-
-                face_point = mesh[ii]
-
-                # Need to rotate based on the current belief of pose
-                face_point = face_point @ pose[0].T + pose[1].reshape((3,))
-
-                # # Find the closest point in the point cloud (switch to KDTree)
-                # closest_index = -1
-                # closest_val = np.inf
-                #
-                # for jj in range(0,len(self.cloud)):
-                #     dist = np.linalg.norm(self.cloud[jj]-face_point)
-                #     if dist < closest_val:
-                #         closest_index = jj
-                #         closest_val = dist
-                closest_index = self.cloudKdtree.query(face_point.reshape((1, 3)), 1, distance_upper_bound=5)
-                closest_pt = self.cloud[closest_index[1]]
-
-                # If the distance is above a threshold, remove a given pair of points
-                if np.linalg.norm(closest_pt-face_point.reshape((1,3)))<self.distance_threshold:
-                    s_vals[ii,:] = closest_pt.reshape((1,3))
-                    m_vals[ii,:] = np.array(face_point).reshape((1,3))
-                    count = count +1
-
+            closeEnough = distances < self.distance_threshold
+            s_vals = closest_points[closeEnough]
+            m_vals = face_points[closeEnough]
             # Add weights to the pairs of points (SKIP FOR NOW)
             # Can be tuned based on things like normals, etc.
 
             # Calculate R and T using least squares SVD
-            print("COUNT:",count)
             # Calculate centroids
-            centroid_s = np.sum(s_vals,0)/len(mesh)
-            centroid_m = np.sum(m_vals,0)/len(mesh)
-
-            for ii in range(0,len(mesh)):
-                s_vals[ii,:] = s_vals[ii,:]-centroid_s
-                m_vals[ii, :] = m_vals[ii, :] - centroid_m
-
-            S = np.matmul(np.transpose(s_vals),m_vals)
-            U, sigma, Vh = np.linalg.svd(S, full_matrices=False)
+            print(s_vals.shape, m_vals.shape)
+            centroid_s = np.mean(s_vals, 0)
+            centroid_m = np.mean(m_vals, 0)
+            s_vals -= centroid_s
+            m_vals -= centroid_m
+            S = s_vals.T @ m_vals
+            U, sigma, Vh = np.linalg.svd(S)
             V = np.transpose(Vh)
 
             # Rotation using SVD
             R = np.matmul(V,np.transpose(U))
-            t = centroid_m.reshape((3,1))-np.matmul(R,centroid_s.reshape((3,1)))
+            t = centroid_m.reshape((3,1))-centroid_s.reshape((3,1))
 
             # Update poses - NOTE: translation is with respect to currect translation of mesh
             self.poses[kk] = ((R.T,pose[1].reshape((3,))-t.reshape((3,))))

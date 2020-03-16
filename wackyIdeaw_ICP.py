@@ -1,10 +1,8 @@
-from Skeletonizer import skeletonizer, cloudFromMask
 import Verbosifier
 from sklearn.cluster import DBSCAN
 from multiprocessing import Queue, Process
 import matplotlib.pyplot as plt
 from Mesh import Mesh
-from ModelFinder import ModelFinder
 import numpy as np
 from matplotlib.animation import FuncAnimation
 import functools
@@ -14,17 +12,7 @@ from trimesh.proximity import ProximityQuery
 from mpl_toolkits.mplot3d import Axes3D
 import time
 from ICP_refinement import ICPrefinement
-
-def cluster(skeleton):
-    cloud = cloudFromMask(skeleton)
-    clustering = DBSCAN(eps=0.01, min_samples=1)
-    clustering.fit(cloud)
-    cand_points = []
-
-    for ii in range(0,max(clustering.labels_)+1):
-        cand_points.append(np.mean(cloud[clustering.labels_==ii],axis=0))
-
-    return cand_points
+from ModelFinder import ModelFinder
 
 def flipNormals(cloudNormals):
     for i, n in enumerate(cloudNormals):
@@ -38,7 +26,7 @@ def showICP(ax, cloud, Q: Queue, t, mesh):
 
     if faces_temp is not None:
         ax.clear()
-        print("LEN",len(faces_temp))
+        print("LEN",faces_temp.shape)
         ax.set_xlim3d(-.3, 0)
         ax.set_ylim3d(-.2, 0.)
         ax.set_zlim3d(0.2, 0.5)
@@ -49,9 +37,19 @@ def showICP(ax, cloud, Q: Queue, t, mesh):
         ax.scatter(cloud[:, 0], cloud[:, 1], cloud[:, 2], color='blue')
     return
 
-def runICP(Q: Queue, cloud, cand_points):
+def runICP(Q: Queue, cloud):
+    Verbosifier.enableVerbosity()
     mesh_one = Mesh('Models/ToyScrew-Yellow.stl')
+    
+    finder = ModelFinder()
+    finder.set_resolution(0.001)
+    finder.set_meshes([mesh_one])
+    finder.set_scene(cloud)
+    instances = finder.findInstances()
+    cand_points = [pose[0] for m,pose in instances]
+
     time.sleep(3)
+
 
     meshes = []
     poses = []
@@ -86,14 +84,14 @@ def runICP(Q: Queue, cloud, cand_points):
         count = count + 1
     return
 
-def run_icp_test(cloud,cand_points,mesh):
+def run_icp_test(cloud,mesh):
     fig = plt.figure()
     ax = fig.gca(projection='3d')
 
     Q = Queue()
     ani = FuncAnimation(fig, functools.partial(showICP, ax, cloud, Q, mesh), range(1), repeat_delay=1000)
 
-    process = Process(target=runICP, args=(Q, cloud, cand_points))
+    process = Process(target=runICP, args=(Q, cloud))
     process.start()
     ax.set_xlim3d(-.3, 0)
     ax.set_ylim3d(-.2, 0.)
@@ -112,11 +110,7 @@ def main():
         noisyCloud = np.array(json.load(fin))
         noisyCloud = noisyCloud[np.linalg.norm(noisyCloud, axis=1) < 0.5]
 
-    print('making scene')
-    mask = skeletonizer(noisyCloud)
-    cand_points = cluster(mask)
-
-    run_icp_test(realCloud,cand_points,mesh)
+    run_icp_test(noisyCloud,mesh)
 
 
 if __name__ == '__main__':
