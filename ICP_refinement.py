@@ -103,7 +103,7 @@ Testing functions for ICP Algorithm
 """
 
 def runICP(Q: Queue, cloud):
-    mesh_one = Mesh('Models/ToyScrew-Yellow.stl')
+    mesh_one = Mesh('Models/ToyScrew-Yellow.stl', 0.001)
 
     time.sleep(2)
 
@@ -258,7 +258,7 @@ def test_ICP_alg():
     flipNormals(cloudNormals)
 
     # Get the mesh
-    mesh = Mesh('Models/ToyScrew-Yellow.stl')
+    mesh = Mesh('Models/ToyScrew-Yellow.stl', 0.001)
 
     r1 = np.eye(3)
     o1 = np.array([0., 0., 0.])
