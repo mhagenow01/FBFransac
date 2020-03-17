@@ -14,6 +14,8 @@ import time
 from ICP_refinement import ICPrefinement
 from ModelFinder import ModelFinder
 
+gridResolution = 0.001
+
 def flipNormals(cloudNormals):
     for i, n in enumerate(cloudNormals):
         if n[2] > 0:
@@ -39,10 +41,11 @@ def showICP(ax, cloud, Q: Queue, t, mesh):
 
 def runICP(Q: Queue, cloud):
     Verbosifier.enableVerbosity()
-    mesh_one = Mesh('Models/ToyScrew-Yellow.stl')
+    gridResolution = 0.001
+    mesh_one = Mesh('Models/ToyScrew-Yellow.stl',gridResolution)
     
     finder = ModelFinder()
-    finder.set_resolution(0.001)
+    finder.set_resolution(gridResolution)
     finder.set_meshes([mesh_one])
     finder.set_scene(cloud)
     instances = finder.findInstances()
@@ -102,7 +105,7 @@ def run_icp_test(cloud,mesh):
 
 def main():
     Verbosifier.enableVerbosity()
-    mesh = Mesh('Models/ToyScrew-Yellow.stl')
+    mesh = Mesh('Models/ToyScrew-Yellow.stl', gridResolution)
 
     with open('Models/Cloud_ToyScrew-Yellow.json') as fin:
         realCloud = np.array(json.load(fin))

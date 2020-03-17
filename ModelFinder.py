@@ -19,7 +19,7 @@ class ModelFinder:
     def set_meshes(self, meshes):
         self.Models = meshes
         for m in meshes:
-            m.cacheMeshDistance(KeyPointGenerator.BinSize)
+            m.cacheMeshDistance()
             self.KeyPointGenerators.append(self._getKeyPointGenFromMesh(m))
     
     @verbose()

@@ -11,11 +11,12 @@ from Verbosifier import verbose
 import rtree
 import functools
 import progressbar
+from OnDisk import OnDisk
 
 FEATURE_CACHE_DIR = os.path.join(os.curdir,'FeatureCache')
 
-class Mesh:
-    def __init__(self, meshFile):
+class Mesh(OnDisk):
+    def __init__(self, meshFile, distanceFieldBinSize):
         self.trimesh = trimesh.load_mesh(meshFile)
         self.Radius = self.trimesh.bounding_sphere._data['radius']
         self.Features = None
@@ -25,7 +26,14 @@ class Mesh:
         self.DistanceCache = None
         self.BoundingBoxOrigin = None
         self.NBins = None
-        self.BinSize = None
+        self.BinSize = distanceFieldBinSize
+
+        super().__init__(os.path.join(os.curdir, 'MeshCache'))
+
+        self.computeMeshDistanceField = self.cache(
+            self.computeMeshDistanceField, 
+            os.path.split(meshFile)[-1] + 'computeMeshDistanceField' + str(self.BinSize) + '.ftr'
+        )
         
 
     @verbose(1000)
@@ -218,23 +226,30 @@ class Mesh:
         return np.linalg.norm(self.trimesh.vertices[v1] - self.trimesh.vertices[v2])
 
 
-    def cacheMeshDistance(self, binsize, padding = 5):
+    def cacheMeshDistance(self):
+        self.NBins, self.BoundingBoxOrigin, self.DistanceCache = self.computeMeshDistanceField(self.BinSize)
+    
+    def computeMeshDistanceField(self, binsize):
+        ''' This function is memoized in __init__. 
+            It should remain pure.
+        '''
+        padding = 5
         bounds = self.trimesh.bounding_box_oriented.bounds
-        self.NBins = np.array(np.ceil((bounds[1] - bounds[0]) / binsize), dtype = np.int) + 2 * padding
-        self.BinSize = binsize
-        self.DistanceCache = np.zeros(self.NBins)
-        self.BoundingBoxOrigin = bounds[0] - padding * binsize
+        nBins = np.array(np.ceil((bounds[1] - bounds[0]) / binsize), dtype = np.int) + 2 * padding
+        distanceField = np.zeros(nBins)
+        origin = bounds[0] - padding * binsize
         
-        centers = np.zeros((self.DistanceCache.size, 3))
-        for i in range(self.DistanceCache.size):
-            ijk = np.unravel_index(i, self.NBins)
-            centers[i] = (np.array(ijk) + 0.5) * binsize + self.BoundingBoxOrigin
+        centers = np.zeros((distanceField.size, 3))
+        for i in range(distanceField.size):
+            ijk = np.unravel_index(i, nBins)
+            centers[i] = (np.array(ijk) + 0.5) * binsize + origin
         distances = ProximityQuery(self.trimesh).signed_distance(centers)
         
-        for i in range(self.DistanceCache.size):
-            ijk = np.unravel_index(i, self.DistanceCache.shape)
-            self.DistanceCache[ijk] = distances[i]
-        
+        for i in range(distanceField.size):
+            ijk = np.unravel_index(i, distanceField.shape)
+            distanceField[ijk] = distances[i]
+        return nBins, origin, distanceField
+
     def distanceQuery(self, points):
         if self.DistanceCache is None:
             return ProximityQuery(self.trimesh).signed_distance(points)
