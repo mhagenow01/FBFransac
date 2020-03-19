@@ -255,10 +255,10 @@ class Mesh(OnDisk):
             return ProximityQuery(self.trimesh).signed_distance(points)
         distances = np.zeros(points.shape[0])
         indices = np.array((points - self.BoundingBoxOrigin)/self.BinSize, dtype=np.int)
-        #infMask = np.any(indices < 0, axis = 1) | np.any(indices >= self.NBins, axis = 1)
-        #distances[infMask] = -np.inf
+        infMask = np.any(indices < 0, axis = 1) | np.any(indices >= self.NBins, axis = 1)
+        distances[infMask] = -np.inf
         for i in range(len(points)):
             index = indices[i]
-            #if not infMask[i]:
-            distances[i] = self.DistanceCache[tuple(index)]
+            if not infMask[i]:
+                distances[i] = self.DistanceCache[tuple(index)]
         return distances

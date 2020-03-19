@@ -49,19 +49,14 @@ def runICP(Q: Queue, cloud):
     finder.set_meshes([mesh_one])
     finder.set_scene(cloud)
     instances = finder.findInstances()
-    cand_points = [pose[0] for m,pose in instances]
-
     time.sleep(3)
-
 
     meshes = []
     poses = []
 
-    for ii in range(0,len(cand_points)):
-        r_temp = np.eye(3)
-        o_temp = cand_points[ii]
-        meshes.append(mesh_one.Faces)
-        poses.append((r_temp,o_temp))
+    for m, sceneKp, meshKp in instances:
+        meshes.append(m.Faces - meshKp)
+        poses.append((np.eye(3), sceneKp))
     icp = ICPrefinement(cloud,meshes,poses)
 
     count = 0
@@ -69,8 +64,8 @@ def runICP(Q: Queue, cloud):
     while 1:
         faces_temp = []
 
-        for ii in range(0,len(cand_points)):
-            faces_temp.append((mesh_one.Faces @ poses[ii][0].T) + poses[ii][1])
+        for m, pose in zip(meshes, poses):
+            faces_temp.append((m @ pose[0].T) + pose[1])
 
         Q.put(np.copy(faces_temp))
         print(poses)
