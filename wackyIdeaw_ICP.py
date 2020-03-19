@@ -29,9 +29,9 @@ def showICP(ax, cloud, Q: Queue, t, mesh):
     if faces_temp is not None:
         ax.clear()
         print("LEN",faces_temp.shape)
-        ax.set_xlim3d(-.3, 0)
-        ax.set_ylim3d(-.2, 0.)
-        ax.set_zlim3d(0.2, 0.5)
+        ax.set_xlim3d(-0.1, 0.1)
+        ax.set_ylim3d(-0.1, 0.1)
+        ax.set_zlim3d(-0.1, 0.1)
 
         for ii in range(0,len(faces_temp)):
             ax.scatter(faces_temp[ii][:, 0], faces_temp[ii][:, 1], faces_temp[ii][:, 2], color='red')
@@ -81,7 +81,7 @@ def runICP(Q: Queue, cloud):
         elapsed_time = time.time() - start_time
 
         meshes, poses = icp.getUpdatedMeshes()
-        time.sleep(2)
+        # time.sleep(2)
         print("ICP Iteration: "+str(count))
 
         count = count + 1
@@ -92,7 +92,7 @@ def run_icp_test(cloud,mesh):
     ax = fig.gca(projection='3d')
 
     Q = Queue()
-    ani = FuncAnimation(fig, functools.partial(showICP, ax, cloud, Q, mesh), range(1), repeat_delay=1000)
+    ani = FuncAnimation(fig, functools.partial(showICP, ax, cloud, Q, mesh), range(1), repeat_delay=50)
 
     process = Process(target=runICP, args=(Q, cloud))
     process.start()
@@ -107,9 +107,7 @@ def main():
     Verbosifier.enableVerbosity()
     mesh = Mesh('Models/ToyScrew-Yellow.stl', gridResolution)
 
-    with open('Models/Cloud_ToyScrew-Yellow.json') as fin:
-        realCloud = np.array(json.load(fin))
-    with open('Models/ScrewScene.json') as fin:
+    with open('Models/Cloud_hand_and_screw_simulated.json') as fin:
         noisyCloud = np.array(json.load(fin))
         noisyCloud = noisyCloud[np.linalg.norm(noisyCloud, axis=1) < 0.5]
 

@@ -73,10 +73,10 @@ class ICPrefinement:
 
             # Rotation using SVD
             R = np.matmul(V,np.transpose(U))
-            t = 0.01*(centroid_m.reshape((3,1))- R @ centroid_s.reshape((3,1))         )
+            t = (centroid_m.reshape((3,1))- R @ centroid_s.reshape((3,1)))
 
             # REMOVE
-            t = np.zeros((3,1))
+            # t = np.zeros((3,1))
             # print ("R in ICP:", R)
             # print ("T in ICP:", t)
 
