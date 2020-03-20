@@ -5,6 +5,8 @@ import Verbosifier
 from queue import Queue
 from scipy.ndimage import correlate
 from collections import defaultdict
+from scipy.sparse import lil_matrix
+from scipy.sparse.csgraph import floyd_warshall
 
 class Node:
     def __init__(self, index, value):
@@ -13,6 +15,7 @@ class Node:
         self.Index = index
         self.Value = value
         self.Label = None
+        self.MatrixIndex = None
     
     def removeFromAdjacent(self):
         for a in self.Adjacent:
@@ -44,6 +47,8 @@ class Graph:
 
     @verbose()
     def labelConnectedComponents(self):
+        for n in self.Nodes.values():
+            n.Label = None
         label = 0
         for v in self.Nodes.values():
             if v.Label is None:
@@ -59,15 +64,25 @@ class Graph:
         return
     
     @verbose()
-    def connectedComponentCenters(self, minValue, maxValue):
-        centers = defaultdict(lambda : (None, np.inf))
+    def connectedComponentCenters(self):
         for n in self.Nodes.values():
-            if n.Value >= minValue and n.Value <= maxValue:
-                bestN, bestD = centers[n.Label]
-                d = self.maxDistance(n)
-                if d < bestD:
-                    centers[n.Label] = (n, d)
-        return zip(*centers.values())
+            n.MatrixIndex = None
+
+        maxLabel = self.labelConnectedComponents()
+        centers = {}
+        for l in range(maxLabel):
+            nodeList = []
+            for n in self.Nodes.values():
+                if n.MatrixIndex is None and n.Label == l:
+                    n.MatrixIndex = len(nodeList)
+                    nodeList.append(n)
+            graph = lil_matrix((len(nodeList), len(nodeList)))
+            for i, n in enumerate(nodeList):
+                for a in n.Adjacent:
+                    graph[i, a.MatrixIndex] = 1
+            dist_matrix = floyd_warshall(graph, False, False, True)
+            centers[i] = nodeList[np.argmin(np.max(dist_matrix, 1))]
+        return centers.values()
     
     def maxDistance(self, node):
         seen = set()

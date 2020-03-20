@@ -72,7 +72,7 @@ class KeyPointGenerator:
         g.fromMatrix(skeleton)
         g.prune(n, minNodes)
         g.labelConnectedComponents()
-        centerNodes, distances = g.connectedComponentCenters(self.MinDistance, self.MaxDistance)
+        centerNodes = g.connectedComponentCenters()
         return g.toCloud(centerNodes)
 
 
