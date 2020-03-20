@@ -1,9 +1,10 @@
-import Verbosifier
 import json
+import time
 import numpy as np
-from EfficientRANSAC.scripts.EfficientRANSACFinder import EfficientRANSACFinder as ERF
+from scripts.EfficientRANSACFinder import EfficientRANSACFinder as ERF
 import point_cloud_utils as pcu
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 def flipNormals(cloudNormals):
     for i,n in enumerate(cloudNormals):
@@ -11,8 +12,7 @@ def flipNormals(cloudNormals):
             cloudNormals[i] = -n
 
 def main():
-    Verbosifier.enableVerbosity()
-    with open('EfficientRANSAC/Test_Scenes/Cloud_sphere.json') as fin:
+    with open('Test_Scenes/Cloud_primitive_playground.json') as fin:
         cloud = []
         screwCloud = np.array(json.load(fin))
         for p in screwCloud:
@@ -28,16 +28,25 @@ def main():
     mask = ERF.voxelFilter(fullCloud, size=0.005)
     cloud, cloudNormals = fullCloud[mask], cloudNormals[mask]
     flipNormals(cloudNormals)
-    erf.findInCloud(cloud, cloudNormals)
+    found_spheres = erf.findInCloud(cloud, cloudNormals)
 
-    # draw sphere
     fig = plt.figure()
     ax = fig.gca(projection='3d')
-    u, v = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
-    x = np.cos(u) * np.sin(v)
-    y = np.sin(u) * np.sin(v)
-    z = np.cos(v)
-    ax.plot_wireframe(x, y, z, color="r")
+    ax.set_xlim3d(-0.5, 0.5)
+    ax.set_ylim3d(-0.5, 0.5)
+    ax.set_zlim3d(-0.5, 0.5)
+    ax.scatter(cloud[:, 0], cloud[:, 1], cloud[:, 2], color='blue', alpha=0.2)
+    print("Found ",len(found_spheres), " Spheres!")
+
+    for ii in range(0,len(found_spheres)):
+        r = found_spheres[ii][0]
+        c = found_spheres[ii][1]
+        u, v = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
+        x = r*np.cos(u) * np.sin(v)+c[0]
+        y = r*np.sin(u) * np.sin(v)+c[1]
+        z = r*np.cos(v)+c[2]
+        ax.plot_wireframe(x, y, z, color="r")
+    plt.show()
 
 if __name__ == '__main__':
     main()
