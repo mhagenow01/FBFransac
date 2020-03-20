@@ -71,7 +71,6 @@ class KeyPointGenerator:
         g = Graph()
         g.fromMatrix(skeleton)
         g.prune(n, minNodes)
-        g.labelConnectedComponents()
         centerNodes = g.connectedComponentCenters()
         return g.toCloud(centerNodes)
 

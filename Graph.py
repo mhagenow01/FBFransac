@@ -67,7 +67,6 @@ class Graph:
     def connectedComponentCenters(self):
         for n in self.Nodes.values():
             n.MatrixIndex = None
-
         maxLabel = self.labelConnectedComponents()
         centers = {}
         for l in range(maxLabel):
@@ -83,23 +82,6 @@ class Graph:
             dist_matrix = floyd_warshall(graph, False, False, True)
             centers[i] = nodeList[np.argmin(np.max(dist_matrix, 1))]
         return centers.values()
-    
-    def maxDistance(self, node):
-        seen = set()
-        q = Queue()
-        maxD = 0
-        q.put((node, 0))
-        while not q.empty():
-            n, d = q.get()
-            maxD = max(d, maxD)
-            if n in seen:
-                continue
-            seen.add(n)
-            for a in n.Adjacent:
-                if a not in seen:
-                    q.put((a, d+1))
-        return maxD
-
 
     def toMatrix(self, m):
         for k,v in self.Nodes.items():
@@ -112,8 +94,9 @@ class Graph:
     @verbose()
     def fromMatrix(self, m):
         self.Nodes = {}
-        indices = np.array(np.where(m)).T
         shape = np.array(m.shape, dtype = np.int)
+        indices = np.array(np.where(m)).T
+        indices = indices[~(np.any(indices <= 0, 1) | np.any(indices >= shape - 1, 1))]
         offsets = [np.array(combo) for combo in itertools.product(*(((-1, 0, 1),) * len(shape)))]
         offsets = list(filter(lambda x: not np.all(x == 0), offsets))
         for i in indices:
@@ -123,12 +106,11 @@ class Graph:
                 self.Nodes[t_i] = node
                 for offset in offsets:
                     n = i + offset
-                    if np.all(n >= 0) and np.all(n < shape):
-                        t_n = tuple(n)
-                        if m[t_n] and t_n in self.Nodes.keys():
-                            neighbor = self.Nodes[t_n]
-                            node.Adjacent.add(neighbor)
-                            neighbor.Adjacent.add(node)
+                    t_n = tuple(n)
+                    if m[t_n] and t_n in self.Nodes.keys():
+                        neighbor = self.Nodes[t_n]
+                        node.Adjacent.add(neighbor)
+                        neighbor.Adjacent.add(node)
         return
 
     @verbose()
