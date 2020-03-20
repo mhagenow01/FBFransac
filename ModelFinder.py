@@ -57,7 +57,7 @@ class ModelFinder:
             for kp in sceneKeyPoints:
                 pose = self.determinePose(m, meshKeyPoints, kp)
                 if self.validatePose(m, pose):
-                    instances.append((m, pose))
+                    instances.append((m, kp, meshKeyPoints))
 
         return instances
 

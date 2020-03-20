@@ -30,7 +30,7 @@ if __name__ == '__main__':
     stats.print_stats()
 
     ax = plt.gca(projection = '3d')
-    for mesh, (origin, rotation) in instances:
+    for mesh, (rotation, origin) in instances:
         facePoints = (mesh.Faces + origin) @ rotation
         ax.scatter(facePoints[:,0], facePoints[:,1], facePoints[:,2], color = 'red')
     ax.scatter(scene[:,0], scene[:,1], scene[:,2], color = 'blue')
