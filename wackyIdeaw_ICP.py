@@ -28,7 +28,6 @@ def showICP(ax, cloud, Q: Queue, t, mesh):
 
     if faces_temp is not None:
         ax.clear()
-        print("LEN",faces_temp.shape)
         ax.set_xlim3d(-0.1, 0.1)
         ax.set_ylim3d(-0.1, 0.1)
         ax.set_zlim3d(-0.1, 0.1)
@@ -49,7 +48,6 @@ def runICP(Q: Queue, cloud):
     finder.set_meshes([mesh_one])
     finder.set_scene(cloud)
     instances = finder.findInstances()
-    time.sleep(3)
 
     meshes = []
     poses = []
@@ -68,7 +66,6 @@ def runICP(Q: Queue, cloud):
             faces_temp.append((m @ pose[0].T) + pose[1])
 
         Q.put(np.copy(faces_temp))
-        print(poses)
 
         # Run an iteration of the ICP
         start_time = time.time()
@@ -76,8 +73,6 @@ def runICP(Q: Queue, cloud):
         elapsed_time = time.time() - start_time
 
         meshes, poses = icp.getUpdatedMeshes()
-        # time.sleep(2)
-        print("ICP Iteration: "+str(count))
 
         count = count + 1
     return

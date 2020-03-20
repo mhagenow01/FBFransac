@@ -42,12 +42,14 @@ class Graph:
                 yield neighbor
         return None
 
+    @verbose()
     def labelConnectedComponents(self):
         label = 0
         for v in self.Nodes.values():
             if v.Label is None:
                 self._labelComponent(v, label)
                 label += 1
+        return label
 
     def _labelComponent(self, node, label):
         node.Label = label
@@ -56,13 +58,14 @@ class Graph:
                 self._labelComponent(n, label)
         return
     
+    @verbose()
     def connectedComponentCenters(self, minValue, maxValue):
-        centers = defaultdict(lambda : (None, -1))
+        centers = defaultdict(lambda : (None, np.inf))
         for n in self.Nodes.values():
             if n.Value >= minValue and n.Value <= maxValue:
                 bestN, bestD = centers[n.Label]
                 d = self.maxDistance(n)
-                if d > bestD:
+                if d < bestD:
                     centers[n.Label] = (n, d)
         return zip(*centers.values())
     
@@ -117,7 +120,6 @@ class Graph:
     def prune(self, n, bottom = 20):
         toPrune = set()
         while len(self.Nodes) - len(toPrune) > bottom:
-            print(n, len(self.Nodes))
             for k in toPrune:
                 self.Nodes[k].removeFromAdjacent()
                 self.Nodes.pop(k)

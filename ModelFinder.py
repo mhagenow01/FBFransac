@@ -13,7 +13,7 @@ class ModelFinder:
         self.KeyPointGenerators = []
         self.Scene = None
         self.SceneKd = None
-        self.MaxDistanceError = 0.005
+        self.MaxDistanceError = 0.004
     
     def _getKeyPointGenFromMesh(self, mesh):
         # Currently hard coded for the screw model
@@ -79,8 +79,6 @@ class ModelFinder:
         kpShift[:3, 3] = -meshKp
         kpShift[ 3, 3] = 1
         T = t @ kpShift
-        print(t)
-        print(T)
         return T[:3,:3], T[:3,3]
 
     def validatePose(self, mesh : Mesh, pose):
@@ -90,18 +88,14 @@ class ModelFinder:
             Then return True if its good enough, and False otherwise.
         '''
         R, o = pose
-        print(o)
         nearbyDistances, nearbyPoints_ind = self.SceneKd.query(o.reshape((1,3)), k = 300, distance_upper_bound = mesh.Radius)
         nearbyPoints_ind = np.array(nearbyPoints_ind)
         nearbyPoints = self.Scene[nearbyPoints_ind[nearbyPoints_ind < len(self.Scene)]]
 
         nearbyPoints = (nearbyPoints - o) @ R
         distanceToMesh = mesh.distanceQuery(nearbyPoints)
-        print(distanceToMesh)
         outliers = np.sum(distanceToMesh > self.MaxDistanceError)
         inliers = np.sum(np.abs(distanceToMesh) <= self.MaxDistanceError)
-        print(outliers)
-        print(inliers)
         if outliers > 0:
             return False
         if inliers < 60:
