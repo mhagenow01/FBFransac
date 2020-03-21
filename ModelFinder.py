@@ -13,7 +13,7 @@ class ModelFinder:
         self.KeyPointGenerators = []
         self.Scene = None
         self.SceneKd = None
-        self.MaxDistanceError = 0.004
+        self.MaxDistanceError = 0.001
     
     def _getKeyPointGenFromMesh(self, mesh):
         # Currently hard coded for the screw model
@@ -44,9 +44,6 @@ class ModelFinder:
 
             Returns: (the mesh, the scene keypoint, the corresponding mesh keypoint)
         '''
-        # TODO: This currently has ICP as an external step, so we can't pass back a real pose
-        # or do validation. That should be integrated into this.
-        # When ICP is in here, we should change what this returns.
         instances = []
         for m, kg in zip(self.Models, self.KeyPointGenerators):
             # First generate hypotheses of scene model correspondences.
@@ -56,9 +53,9 @@ class ModelFinder:
             # TODO: Allow for potentially multiple keypoints per mesh?
             meshKeyPoints = meshKeyPoints[0:1,:]
             for kp in sceneKeyPoints:
-                pose = self.determinePose(m, meshKeyPoints, kp)
+                pose = self.determinePose(m, meshKeyPoints, kp.reshape((1,3)))
                 if self.validatePose(m, pose):
-                    instances.append((m, kp, meshKeyPoints))
+                    instances.append((m, pose))
 
         return instances
 
@@ -69,17 +66,14 @@ class ModelFinder:
         R = np.eye(3)
         o = sceneKp
         meshFaces = mesh.Faces - meshKp
-        R,o = self.runICP(R,o,meshFaces)
+        R, o = self.runICP(R, o, meshFaces)
+        if R is None or o is None:
+            return None, None
 
-        t = np.zeros((4,4))
-        t[:3,:3] = R
-        t[:3, 3] = o
-        t[ 3, 3] = 1
-        kpShift = np.zeros((4,4))
-        kpShift[:3,:3] = np.eye(3)
-        kpShift[:3, 3] = -meshKp
-        kpShift[ 3, 3] = 1
-        T = t @ kpShift
+        T = np.zeros((4,4))
+        T[:3,:3] = R
+        T[:3, 3] = o - meshKp @ R.T
+        T[ 3, 3] = 1
         return T[:3,:3], T[:3,3]
 
     def validatePose(self, mesh : Mesh, pose):
@@ -89,6 +83,8 @@ class ModelFinder:
             Then return True if its good enough, and False otherwise.
         '''
         R, o = pose
+        if R is None or o is None:
+            return False
         nearbyDistances, nearbyPoints_ind = self.SceneKd.query(o.reshape((1,3)), k = 300, distance_upper_bound = mesh.Radius)
         nearbyPoints_ind = np.array(nearbyPoints_ind)
         nearbyPoints = self.Scene[nearbyPoints_ind[nearbyPoints_ind < len(self.Scene)]]
@@ -97,6 +93,8 @@ class ModelFinder:
         distanceToMesh = mesh.distanceQuery(nearbyPoints)
         outliers = np.sum(distanceToMesh > self.MaxDistanceError)
         inliers = np.sum(np.abs(distanceToMesh) <= self.MaxDistanceError)
+        print(outliers, inliers)
+        return True
         if outliers > 0:
             return False
         if inliers < 60:
@@ -104,15 +102,13 @@ class ModelFinder:
         return True
 
     def runICP(self, R, o, mesh):
-        ''' Given a current pose (R + o) for a mesh, use ICP to iterate
+        ''' Given a current pose (R,  o) for a mesh, use ICP to iterate
         and find a better pose that aligns the closest points
         '''
-
         # Parameters for ICP
-        max_iterations = 20 # max iterations for a mesh to preserve performance
-        tolerance = 0.25 # when to stop ICP -> cumulative error
-        distance_threshold = 0.02 # 2 mm away for closest point
-
+        max_iterations = 1 # max iterations for a mesh to preserve performance
+        tolerance = 0.025 # when to stop ICP -> cumulative error
+        distance_threshold = 0.02 # 2 cm away for closest point
 
         # starting value for exit conditions
         number_iterations = 0
@@ -121,20 +117,19 @@ class ModelFinder:
         while (error > tolerance) and (number_iterations < max_iterations):
             # Compute the nearest point in the point cloud for each point in the model
 
-            face_points = mesh @ R + o.reshape((1,3))
+            face_points = mesh @ R.T + o
             distances, closest_indices = self.SceneKd.query(face_points, 1)
             closest_points = self.Scene[closest_indices]
 
             closeEnough = distances < distance_threshold
             s_vals = closest_points[closeEnough]
             m_vals = face_points[closeEnough]
+            if len(s_vals) < 3:
+                return None, None
 
             # TODO: Add weights to the pairs of points (SKIP FOR NOW)
             # Can be tuned based on things like normals, etc.
 
-            # Calculate R and T using least squares SVD
-            # Calculate centroids
-            # print(s_vals.shape, m_vals.shape)
             centroid_s = np.mean(s_vals, 0)
             centroid_m = np.mean(m_vals, 0)
             s_vals -= centroid_s
@@ -144,27 +139,20 @@ class ModelFinder:
             V = np.transpose(Vh)
 
             # Rotation using SVD
-            R_new = np.matmul(V,np.transpose(U))
-            t = (centroid_m.reshape((3,1))- R_new @ centroid_s.reshape((3,1)))
-
-            # REMOVE
-            # t = np.zeros((3,1))
-            # print ("R in ICP:", R)
-            # print ("T in ICP:", t)
+            R_new = V @ U.T
+            t = (centroid_s - centroid_m @ R_new.T)
 
             # Update poses - NOTE: translation and rotation
             # are with respect to the previous values for rotation and translation
-            (R,o) = ((R_new.T @ R.T,o.reshape((3,))-t.reshape((3,))))
+            R, o = R_new @ R, o @ R_new.T + t
 
             # Compute the summed error E(R,t) to determine whether another iteration should be done
-            face_points_temp = mesh @ R + o.reshape((1, 3))
+            face_points_temp = mesh @ R.T + o
             distances_temp, closest_indices_temp = self.SceneKd.query(face_points_temp, 1)
             closest_points_temp = self.Scene[closest_indices_temp]
             error = np.sum(np.linalg.norm(closest_points_temp-face_points_temp,axis=1))
 
-            # print("ITERATION: ",number_iterations," Error: ",error)
+            number_iterations += 1
 
-            number_iterations+=1
-
-
-        return R,o
+        print(number_iterations)
+        return R, o
