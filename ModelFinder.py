@@ -51,6 +51,7 @@ class ModelFinder:
         for m, kg in zip(self.Models, self.KeyPointGenerators):
             # First generate hypotheses of scene model correspondences.
             sceneKeyPoints = kg.keyPointsFromScene()
+            # TODO: This should be cached on a per-mesh basis.
             meshKeyPoints = kg.keyPointsFromField(m.DistanceCache) + m.BoundingBoxOrigin
             # TODO: Allow for potentially multiple keypoints per mesh?
             meshKeyPoints = meshKeyPoints[0:1,:]

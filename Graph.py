@@ -96,6 +96,10 @@ class Graph:
         self.Nodes = {}
         shape = np.array(m.shape, dtype = np.int)
         indices = np.array(np.where(m)).T
+        # It turns out that most of the cost of this function 
+        # is just checking that the neighbors are within bounds. 
+        # Its way faster to do all of that checking up front and just ignore
+        # the edges of the matrix.
         indices = indices[~(np.any(indices <= 0, 1) | np.any(indices >= shape - 1, 1))]
         offsets = [np.array(combo) for combo in itertools.product(*(((-1, 0, 1),) * len(shape)))]
         offsets = list(filter(lambda x: not np.all(x == 0), offsets))
