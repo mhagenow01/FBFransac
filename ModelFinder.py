@@ -52,11 +52,13 @@ class ModelFinder:
             meshKeyPoints = kg.keyPointsFromField(m.DistanceCache) + m.BoundingBoxOrigin
             # TODO: Allow for potentially multiple keypoints per mesh?
             meshKeyPoints = meshKeyPoints[0:1,:]
+            iter = 0
             for kp in sceneKeyPoints:
-                pose = self.determinePose(m, meshKeyPoints, kp.reshape((1,3)))
-                if self.validatePose(m, pose):
-                    instances.append((m, pose))
-
+                if 1: # MH: temporary lines just so I can make it only spit out one screw during unit-testing
+                    pose = self.determinePose(m, meshKeyPoints, kp.reshape((1,3)))
+                    if self.validatePose(m, pose):
+                        instances.append((m, pose))
+                iter+=1
         return instances
 
     def determinePose(self, mesh, meshKp, sceneKp):
@@ -93,8 +95,8 @@ class ModelFinder:
         distanceToMesh = mesh.distanceQuery(nearbyPoints)
         outliers = np.sum(distanceToMesh > self.MaxDistanceError)
         inliers = np.sum(np.abs(distanceToMesh) <= self.MaxDistanceError)
-        print(outliers, inliers)
-        return True
+        # print(outliers, inliers)
+        #return True
         if outliers > 0:
             return False
         if inliers < 60:
@@ -106,9 +108,9 @@ class ModelFinder:
         and find a better pose that aligns the closest points
         '''
         # Parameters for ICP
-        max_iterations = 1 # max iterations for a mesh to preserve performance
-        tolerance = 0.025 # when to stop ICP -> cumulative error
-        distance_threshold = 0.02 # 2 cm away for closest point
+        max_iterations = 50 # max iterations for a mesh to preserve performance
+        tolerance = 0*0.0025*len(mesh) # when to stop ICP -> cumulative error
+        distance_threshold = 0.1 # 2 cm away for closest point
 
         # starting value for exit conditions
         number_iterations = 0
@@ -142,16 +144,20 @@ class ModelFinder:
             R_new = V @ U.T
             t = (centroid_s - centroid_m @ R_new.T)
 
+            # print("ICP R:", R_new, " T: ",t)
+
             # Update poses - NOTE: translation and rotation
             # are with respect to the previous values for rotation and translation
-            R, o = R_new @ R, o @ R_new.T + t
+            # print("OLD R:", R, " T:",o)
+            R, o =  R_new.T @ R, o @ R_new.T + t
+            # print("NEW R:", R, " T:", o)
 
             # Compute the summed error E(R,t) to determine whether another iteration should be done
             face_points_temp = mesh @ R.T + o
             distances_temp, closest_indices_temp = self.SceneKd.query(face_points_temp, 1)
             closest_points_temp = self.Scene[closest_indices_temp]
             error = np.sum(np.linalg.norm(closest_points_temp-face_points_temp,axis=1))
-
+            # print("ERROR ", error)
             number_iterations += 1
 
         print(number_iterations)
