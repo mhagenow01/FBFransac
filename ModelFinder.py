@@ -12,6 +12,7 @@ class ModelFinder:
         self.Models = []
         self.KeyPointGenerators = []
         self.Scene = None
+        self.SceneNormals = None
         self.SceneKd = None
         self.MaxDistanceError = 0.001
     
@@ -29,6 +30,7 @@ class ModelFinder:
     @verbose()
     def set_scene(self, cloud):
         self.Scene = cloud
+        self.SceneNormals = pcu.estimate_normals(cloud,10,3)
         self.SceneKd = KDTree(cloud)
         KeyPointGenerator.setSceneDistanceFieldFromCloud(cloud)
 
@@ -68,7 +70,7 @@ class ModelFinder:
         R = np.eye(3)
         o = sceneKp
         meshFaces = mesh.Faces - meshKp
-        R, o = self.runICP(R, o, meshFaces)
+        R, o = self.runICP(R, o, meshFaces, mesh.Normals)
         if R is None or o is None:
             return None, None
 
@@ -96,19 +98,19 @@ class ModelFinder:
         outliers = np.sum(distanceToMesh > self.MaxDistanceError)
         inliers = np.sum(np.abs(distanceToMesh) <= self.MaxDistanceError)
         # print(outliers, inliers)
-        #return True
+        return True
         if outliers > 0:
             return False
         if inliers < 60:
             return False
         return True
 
-    def runICP(self, R, o, mesh):
+    def runICP(self, R, o, mesh, meshNormals):
         ''' Given a current pose (R,  o) for a mesh, use ICP to iterate
         and find a better pose that aligns the closest points
         '''
         # Parameters for ICP
-        max_iterations = 50 # max iterations for a mesh to preserve performance
+        max_iterations = 100 # max iterations for a mesh to preserve performance
         tolerance = 0*0.0025*len(mesh) # when to stop ICP -> cumulative error
         distance_threshold = 0.1 # 2 cm away for closest point
 
@@ -129,14 +131,31 @@ class ModelFinder:
             if len(s_vals) < 3:
                 return None, None
 
-            # TODO: Add weights to the pairs of points (SKIP FOR NOW)
-            # Can be tuned based on things like normals, etc.
 
-            centroid_s = np.mean(s_vals, 0)
-            centroid_m = np.mean(m_vals, 0)
+            #########################################
+            # Ability to add weights to the points  #
+            #########################################
+
+            # All ones is no-weighting
+            weights = np.ones((len(s_vals),))
+
+            # # weights based on distance
+            # weights = 1.0 - (np.abs(distances[closeEnough])/distance_threshold)
+
+            # # weights based on normals
+            # weights = np.abs(np.sum(self.SceneNormals[closest_indices][closeEnough]*(meshNormals[closeEnough] @ R.T),axis=1))
+
+
+            # print("weights:",weights)
+
+            weights_matrix = np.diag(weights)
+
+            centroid_s = np.divide(s_vals.T @ weights ,np.sum(weights))
+            centroid_m = np.divide(m_vals.T @ weights ,np.sum(weights))
+
             s_vals -= centroid_s
             m_vals -= centroid_m
-            S = s_vals.T @ m_vals
+            S = m_vals.T @ weights_matrix @ s_vals
             U, sigma, Vh = np.linalg.svd(S)
             V = np.transpose(Vh)
 
@@ -145,11 +164,13 @@ class ModelFinder:
             t = (centroid_s - centroid_m @ R_new.T)
 
             # print("ICP R:", R_new, " T: ",t)
+            # print("Centroid S:",centroid_s, "Centroid M:", centroid_m)
+            # print("LEN: ", len(s_vals))
 
             # Update poses - NOTE: translation and rotation
             # are with respect to the previous values for rotation and translation
             # print("OLD R:", R, " T:",o)
-            R, o =  R_new.T @ R, o @ R_new.T + t
+            R, o =   R_new @ R, o @ R_new.T + t
             # print("NEW R:", R, " T:", o)
 
             # Compute the summed error E(R,t) to determine whether another iteration should be done
