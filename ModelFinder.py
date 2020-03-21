@@ -69,7 +69,7 @@ class ModelFinder:
         R = np.eye(3)
         o = sceneKp
         meshFaces = mesh.Faces - meshKp
-        # TODO: Do some ICP. Update R and o
+        R,o = self.runICP(R,o,meshFaces)
 
         t = np.zeros((4,4))
         t[:3,:3] = R
@@ -102,3 +102,69 @@ class ModelFinder:
         if inliers < 60:
             return False
         return True
+
+    def runICP(self, R, o, mesh):
+        ''' Given a current pose (R + o) for a mesh, use ICP to iterate
+        and find a better pose that aligns the closest points
+        '''
+
+        # Parameters for ICP
+        max_iterations = 20 # max iterations for a mesh to preserve performance
+        tolerance = 0.25 # when to stop ICP -> cumulative error
+        distance_threshold = 0.02 # 2 mm away for closest point
+
+
+        # starting value for exit conditions
+        number_iterations = 0
+        error = np.inf
+
+        while (error > tolerance) and (number_iterations < max_iterations):
+            # Compute the nearest point in the point cloud for each point in the model
+
+            face_points = mesh @ R + o.reshape((1,3))
+            distances, closest_indices = self.SceneKd.query(face_points, 1)
+            closest_points = self.Scene[closest_indices]
+
+            closeEnough = distances < distance_threshold
+            s_vals = closest_points[closeEnough]
+            m_vals = face_points[closeEnough]
+
+            # TODO: Add weights to the pairs of points (SKIP FOR NOW)
+            # Can be tuned based on things like normals, etc.
+
+            # Calculate R and T using least squares SVD
+            # Calculate centroids
+            # print(s_vals.shape, m_vals.shape)
+            centroid_s = np.mean(s_vals, 0)
+            centroid_m = np.mean(m_vals, 0)
+            s_vals -= centroid_s
+            m_vals -= centroid_m
+            S = s_vals.T @ m_vals
+            U, sigma, Vh = np.linalg.svd(S)
+            V = np.transpose(Vh)
+
+            # Rotation using SVD
+            R_new = np.matmul(V,np.transpose(U))
+            t = (centroid_m.reshape((3,1))- R_new @ centroid_s.reshape((3,1)))
+
+            # REMOVE
+            # t = np.zeros((3,1))
+            # print ("R in ICP:", R)
+            # print ("T in ICP:", t)
+
+            # Update poses - NOTE: translation and rotation
+            # are with respect to the previous values for rotation and translation
+            (R,o) = ((R_new.T @ R.T,o.reshape((3,))-t.reshape((3,))))
+
+            # Compute the summed error E(R,t) to determine whether another iteration should be done
+            face_points_temp = mesh @ R + o.reshape((1, 3))
+            distances_temp, closest_indices_temp = self.SceneKd.query(face_points_temp, 1)
+            closest_points_temp = self.Scene[closest_indices_temp]
+            error = np.sum(np.linalg.norm(closest_points_temp-face_points_temp,axis=1))
+
+            # print("ITERATION: ",number_iterations," Error: ",error)
+
+            number_iterations+=1
+
+
+        return R,o
