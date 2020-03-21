@@ -110,8 +110,8 @@ class ModelFinder:
         and find a better pose that aligns the closest points
         '''
         # Parameters for ICP
-        max_iterations = 100 # max iterations for a mesh to preserve performance
-        tolerance = 0*0.0025*len(mesh) # when to stop ICP -> cumulative error
+        max_iterations = 50 # max iterations for a mesh to preserve performance
+        tolerance = 0.001*len(mesh) # when to stop ICP -> cumulative error
         distance_threshold = 0.1 # 2 cm away for closest point
 
         # starting value for exit conditions
