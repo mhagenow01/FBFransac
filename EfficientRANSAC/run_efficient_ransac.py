@@ -28,7 +28,7 @@ def main():
     mask = ERF.voxelFilter(fullCloud, size=0.005)
     cloud, cloudNormals = fullCloud[mask], cloudNormals[mask]
     flipNormals(cloudNormals)
-    found_spheres = erf.findInCloud(cloud, cloudNormals)
+    found_spheres, found_cylinders = erf.findInCloud(cloud, cloudNormals)
 
     fig = plt.figure()
     ax = fig.gca(projection='3d')
@@ -37,7 +37,14 @@ def main():
     ax.set_zlim3d(-0.5, 0.5)
     ax.scatter(cloud[:, 0], cloud[:, 1], cloud[:, 2], color='blue', alpha=0.2)
     print("Found ",len(found_spheres), " Spheres!")
+    print("Found ",len(found_cylinders), " Cylinders!")
 
+    print("SPHERES!!!!!!!!!!!!!")
+    print(found_spheres)
+    print("Cylinders!!!!!!!!!!!!!")
+    print(found_cylinders)
+
+    # Plot all of the spheres
     for ii in range(0,len(found_spheres)):
         r = found_spheres[ii][0]
         c = found_spheres[ii][1]
@@ -46,6 +53,23 @@ def main():
         y = r*np.sin(u) * np.sin(v)+c[1]
         z = r*np.cos(v)+c[2]
         ax.plot_wireframe(x, y, z, color="r")
+
+    # Plot all of the cylinders
+    for ii in range(0, len(found_cylinders)):
+        r = found_cylinders[ii][0]
+        c = found_cylinders[ii][1]
+        a = found_cylinders[ii][1]
+        min_z = found_cylinders[ii][1]
+        max_z = found_cylinders[ii][1]
+
+        u, v = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
+        x = r * np.cos(u) * np.sin(v) + c[0]
+        y = r * np.sin(u) * np.sin(v) + c[1]
+        z = r * np.cos(v) + c[2]
+        # ax.plot_wireframe(x, y, z, color="r")
+
+
+    # Plot all of the cylinders
     plt.show()
 
 if __name__ == '__main__':

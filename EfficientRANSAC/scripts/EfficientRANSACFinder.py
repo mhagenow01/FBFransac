@@ -14,7 +14,7 @@ class EfficientRANSACFinder:
     ###########################################
     # Class Members                           #
     ###########################################
-
+    max_iterations = 1000
 
     ###########################################
     # Utility Functions                       #
@@ -29,11 +29,53 @@ class EfficientRANSACFinder:
     # Models for each of the shape primitives #
     ###########################################
 
-    def getCylinder(self):
-        print("Cylinder")
+    def getCylinder(self,p1,n1,p2,n2):
+        # A cylinder is fully defined from two points with corresponding normals
 
-    def scoreCylinder(self):
-        print("Cylinder")
+        # Use the two normals to define the direction of the cylinder axis
+        # a = n1 x n2
+        a = np.cross(n1, n2)
+
+        # Project the lines from p1/p2 and the normals onto the plane ax=0
+        # the intersection of these is the centerpoint of the cylinder
+
+        # Project the first line onto the ax = 0 plane
+        # we need a point as well as a direction for the line
+        n1_plane = n1-a.dot(n1)*a
+        p1_plane = p1-a.dot(p1)*a
+
+        n2_plane = n2 - a.dot(n2) * a
+        p2_plane = p2 - a.dot(p2) * a
+
+        # Solve the same way as a sphere casting as an optimization to find the intersection
+        # of lines in the plane (note: in this case, they should intersect!)
+        X0 = np.array([0.0, 0.0])
+        res = minimize(lambda x: self.distanceBetweenPointsOnLine(x, p1_plane, n1_plane, p2_plane, n2_plane), X0)
+        y1_opt = res.x[0] * n1_plane + p1_plane
+        y2_opt = res.x[1] * n2_plane + p2_plane
+        c = (y1_opt + y2_opt) / 2
+
+        r = (np.linalg.norm(p1_plane-c)+np.linalg.norm(p2_plane-c))/2
+        return r,c,a
+
+    def scoreCylinder(self, cloud, cloudNormals, r, c, a):
+        epsilon = 0.005
+        alpha = 0.2
+
+        # Same idea as the sphere,but the points first need to be projected onto the plane!
+        cloud_on_plane = (cloud-np.multiply(np.array([np.sum(a*cloud,axis=1),np.sum(a*cloud,axis=1),np.sum(a*cloud,axis=1)]).T,cloud))
+
+        consistent_pts = (np.linalg.norm(cloud_on_plane - c, axis=1) < np.abs(r) + epsilon) & (
+                    np.linalg.norm(cloud_on_plane - c, axis=1) > np.abs(r) - epsilon) & (np.arccos(np.abs(
+            np.sum(cloudNormals * np.divide((cloud_on_plane - c), np.linalg.norm((cloud_on_plane - c), axis=1)[:, np.newaxis]),
+                   axis=1))) < alpha)
+
+        # TODO: add this for proper bounding
+        min_z = -0.2
+        max_z = 0.2
+
+        # Scoring for the cylinder also needs to return the potential bounds of the cylinder
+        return np.count_nonzero(consistent_pts), min_z, max_z
 
     def getSphere(self,p1,n1,p2,n2):
         # A sphere is fully defined from two points with corresponding normals
@@ -72,31 +114,51 @@ class EfficientRANSACFinder:
         sceneTree = KDTree(cloud)
         indexes = list(range(len(cloud)))
 
-
         found_spheres = []
+        found_cylinders = []
         r_max = 1 # TODO: come back to this
         iterations = 0
-        while iterations<1000:
+
+        while iterations<self.max_iterations:
+
+            # Get the first point
             i = np.random.choice(indexes, 1)[0]
             p1 = cloud[i]
             n1 = cloudNormals[i]
+
+            # Get other points randomly but from a reasonable neighborhood
+            # TODO: This neighborhood is probably what is causing problems!!!!
             neighborIdx = [ii for ii in sceneTree.query(p1.reshape((1,3)), 50, distance_upper_bound = r_max)[1][0] if ii < len(cloud) and ii != i]
             j, k = np.random.choice(neighborIdx, 2, replace = False)
 
             p2, p3 = cloud[j], cloud[k]
             n2, n3 = cloudNormals[j], cloudNormals[k]
-            
+
+            # If the points don't have unique normals, we shouldn't continue since they are needed
+            # to determine the geometry
             if np.linalg.cond(np.column_stack((n1,n2,n3))) > 1e5:
                 continue
 
+            # Try to fit each of the shapes given the randomly selected points
+
+            # Try to fit the sphere
             r,c = self.getSphere(p1,n1,p2,n2)
             score_temp = self.scoreSphere(cloud,cloudNormals,r,c)
             # print("R: ", r, " C:", c, " %:",score_temp)
             if score_temp > 40000*np.power(r,2):
                 found_spheres.append((r,c))
+
+            # Try to fit the cylinder
+            r, c, a = self.getCylinder(p1, n1, p2, n2)
+            score_temp, min_z, max_z = self.scoreCylinder(cloud, cloudNormals, r, c, a)
+            # print("R: ", r, " C:", c, " %:",score_temp)
+            if score_temp > 400:
+                found_cylinders.append((r, c, a, min_z, max_z))
+
+
             iterations+=1
 
-        return found_spheres
+        return found_spheres, found_cylinders
     
     @staticmethod
     def voxelFilter(cloud, size = 0.01):
