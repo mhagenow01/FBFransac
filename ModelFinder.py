@@ -18,7 +18,7 @@ class ModelFinder:
     
     def _getKeyPointGenFromMesh(self, mesh):
         # Currently hard coded for the screw model
-        return KeyPointGenerator(0.003, 0.006, 10, 500)
+        return KeyPointGenerator(0.003, 0.006, 10, 1000)
 
     @verbose()
     def set_meshes(self, meshes):
@@ -74,11 +74,7 @@ class ModelFinder:
         if R is None or o is None:
             return None, None
 
-        T = np.zeros((4,4))
-        T[:3,:3] = R
-        T[:3, 3] = o - meshKp @ R.T
-        T[ 3, 3] = 1
-        return T[:3,:3], T[:3,3]
+        return R, o - meshKp @ R.T
 
     def validatePose(self, mesh : Mesh, pose):
         ''' Given a mesh, pose, and representation of the scene (self.SceneKd), figure out how

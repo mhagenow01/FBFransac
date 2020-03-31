@@ -57,11 +57,23 @@ class Graph:
         return label
 
     def _labelComponent(self, node, label):
+        q = Queue()
+        q.put(node)
         node.Label = label
-        for n in node.Adjacent:
-            if n.Label is None:
-                self._labelComponent(n, label)
+        while not q.empty():
+            node = q.get()
+            for a in node.Adjacent:
+                if a.Label is None:
+                    a.Label = label
+                    q.put(a)
         return
+    
+    def getComponents(self):
+        n = self.labelConnectedComponents()
+        components = [Graph() for _ in range(n)]
+        for k,v in self.Nodes.items():
+            components[v.Label].Nodes[k] = v
+        return components
     
     @verbose()
     def connectedComponentCenters(self):
@@ -118,15 +130,21 @@ class Graph:
         return
 
     @verbose()
-    def prune(self, n, bottom = 20):
-        toPrune = set()
-        while len(self.Nodes) - len(toPrune) > bottom:
+    def prune(self, n, bottom = 20, maxN = 27):
+        toPrune = []
+        while len(self.Nodes) - len(toPrune) > bottom and n <= maxN:
             for k in toPrune:
                 self.Nodes[k].removeFromAdjacent()
                 self.Nodes.pop(k)
-            toPrune = [k for k,v in self.Nodes.items() if len(v.Adjacent) < n-1]
+            toPrune = [k for k,v in self.Nodes.items() if len(v.Adjacent) < n]
             if len(toPrune) == 0:
                 n += 1
+        if n <= maxN:
+            for k in toPrune[:len(self.Nodes) - bottom]:
+                self.Nodes[k].removeFromAdjacent()
+                self.Nodes.pop(k)
+
+
         return
 
     def __iter__(self):
@@ -136,6 +154,9 @@ class Graph:
 
     def __repr__(self):
         return '\n'.join(f'{n}: {n.Adjacent}' for n in self.Nodes.values())
+    
+    def __len__(self):
+        return len(self.Nodes.values())
 
 def matrixIterate(skeleton, n = 1, minNodes = 5):
     f = np.ones((3,3))
@@ -160,7 +181,7 @@ if __name__ == '__main__':
 
     f = np.ones((3,3))
 
-    g.prune(1,5)
+    g.prune(1, 5)
     skeleton = matrixIterate(skeleton)
     print(g.toMatrix(np.zeros_like(skeleton)))
     print(correlate(skeleton, f, mode='constant') * skeleton)
