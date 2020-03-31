@@ -3,118 +3,179 @@ import point_cloud_utils as pcu
 import numpy as np
 from pykdtree.kdtree import KDTree
 from Verbosifier import verbose
+from KeyPointGenerator import KeyPointGenerator
+from pykdtree.kdtree import KDTree
+from Mesh import Mesh
 
 class ModelFinder:
-    def __init__(self, model):
-        self.Model = model
+    def __init__(self):
+        self.Models = []
+        self.KeyPointGenerators = []
+        self.Scene = None
+        self.SceneNormals = None
+        self.SceneKd = None
+        self.MaxDistanceError = 0.001
     
-    #Don't try to verbose a generator.
-    def findInCloud(self, cloud, cloudNormals):
-        sceneTree = KDTree(cloud)
-        indexes = list(range(len(cloud)))
+    def _getKeyPointGenFromMesh(self, mesh):
+        # Currently hard coded for the screw model
+        return KeyPointGenerator(0.003, 0.006, 10, 1000)
 
-        r = self.Model.Radius
-        while True:
-            i = np.random.choice(indexes, 1)[0]
-            p1 = cloud[i]
-            n1 = cloudNormals[i]
-            neighborIdx = [ii for ii in sceneTree.query(p1.reshape((1,3)), 50, distance_upper_bound = 2 * r)[1][0] if ii < len(cloud) and ii != i]
-            j, k = np.random.choice(neighborIdx, 2, replace = False)
-
-            p2, p3 = cloud[j], cloud[k]
-            n2, n3 = cloudNormals[j], cloudNormals[k]
-            
-            if np.linalg.cond(np.column_stack((n1,n2,n3))) > 1e5:
-                continue
-            
-            for pose in self.Model.getPose(np.column_stack((p1,p2,p3)), np.column_stack((n1, n2, n3))):
-                yield pose
-
-        return None
+    @verbose()
+    def set_meshes(self, meshes):
+        self.Models = meshes
+        for m in meshes:
+            m.cacheMeshDistance()
+            self.KeyPointGenerators.append(self._getKeyPointGenFromMesh(m))
     
-    @staticmethod
     @verbose()
-    def voxelFilter(cloud, size = 0.01):
-        min = np.min(cloud, axis = 0)
-        max = np.max(cloud, axis = 0)
-        nBins = np.array(np.ceil((max - min) / size), dtype = np.int)
-        grid = np.full(nBins, -1, dtype = np.int)
-        nPoints = 0
-        for i, p in enumerate(cloud):
-            index = np.array(np.floor((p - min) / size), dtype = np.int)
-            t_index = tuple(index)
-            j = grid[t_index]
-            if j == -1:
-                grid[t_index] = i
-                nPoints += 1
-            else:
-                gridPos = min + (index / nBins) * (max - min)
-                if np.linalg.norm(p - gridPos) < np.linalg.norm(cloud[grid[t_index]] - gridPos):
-                    grid[t_index] = i
-        chosenPoints = np.zeros(nPoints, dtype = np.int)
-        i = 0
-        for pointIndex in grid.flatten():
-            if pointIndex > -1:
-                chosenPoints[i] = pointIndex
-                i += 1
-        return chosenPoints
+    def set_scene(self, cloud):
+        self.Scene = cloud
+        self.SceneNormals = pcu.estimate_normals(cloud,10,3)
+        self.SceneKd = KDTree(cloud)
+        KeyPointGenerator.setSceneDistanceFieldFromCloud(cloud)
 
-    @staticmethod
-    @verbose()
-    def planarCloudSampling(cloud, cloudNormals, radius = 0.1, normalThreshold = 0.1, coplanarThreshold = 0.01):
-        print('Sampling cloud!')
-        sampledPoints = []
-        sampledNormals = []
-        for p, n in zip(cloud, cloudNormals):
-            represented = False
-            for p2, n2 in zip(sampledPoints, sampledNormals):
-                if abs(n.dot(n2)) < 1 - normalThreshold:
-                    continue
-                p_r = p - p2
-                if abs(p_r.dot(n2)) > coplanarThreshold:
-                    continue
-                p_n2 = p_r - p_r.dot(n2) * n2
-                if np.linalg.norm(p_r) > radius:
-                    continue
-                represented = True
-                break
-                
-            if not represented:
-                sampledPoints.append(p)
-                sampledNormals.append(n)
-        return np.array(sampledPoints), np.array(sampledNormals)
 
+    def set_resolution(self, res):
+        KeyPointGenerator.BinSize = res
     
-    @staticmethod
+
     @verbose()
-    def meanPlanarCloudSampling(cloud, cloudNormals, radius = 0.1, normalThreshold = 0.1, coplanarThreshold = 0.01):
-        print('Sampling cloud!')
-        sampledPoints = []
-        sampledNormals = []
-        count = []
-        for p, n in zip(cloud, cloudNormals):
-            represented = False
-            for i, (p2, n2, c) in enumerate(zip(sampledPoints, sampledNormals, count)):
-                if abs(n.dot(n2)) < 1 - normalThreshold:
-                    continue
-                p_r = p - p2
-                if abs(p_r.dot(n2)) > coplanarThreshold:
-                    continue
-                p_n2 = p_r - p_r.dot(n2) * n2
-                if np.linalg.norm(p_r) > radius:
-                    continue
-                represented = True
-                sampledPoints[i] = (p2 * c + p) / (c + 1)
-                if n.dot(n2) < 0:
-                    n = -n
-                sampledNormals[i] = (n2 * c + n) / (c + 1)
-                count[i] += 1
-                break
-                
-            if not represented:
-                sampledPoints.append(p)
-                sampledNormals.append(n)
-                count.append(1)
+    def findInstances(self):
+        ''' Using the defined meshes, keypoint generators, and scene cloud,
+            find all of the potential mesh positions. 
 
-        return np.array(sampledPoints), np.array(sampledNormals)
+            Returns: (the mesh, the scene keypoint, the corresponding mesh keypoint)
+        '''
+        instances = []
+        for m, kg in zip(self.Models, self.KeyPointGenerators):
+            # First generate hypotheses of scene model correspondences.
+            sceneKeyPoints = kg.keyPointsFromScene()
+            # TODO: This should be cached on a per-mesh basis.
+            meshKeyPoints = kg.keyPointsFromField(m.DistanceCache) + m.BoundingBoxOrigin
+            # TODO: Allow for potentially multiple keypoints per mesh?
+            meshKeyPoints = meshKeyPoints[0:1,:]
+            iter = 0
+            for kp in sceneKeyPoints:
+                if 1: # MH: temporary lines just so I can make it only spit out one screw during unit-testing
+                    pose = self.determinePose(m, meshKeyPoints, kp.reshape((1,3)))
+                    if self.validatePose(m, pose):
+                        instances.append((m, pose))
+                iter+=1
+        return instances
 
+    def determinePose(self, mesh, meshKp, sceneKp):
+        ''' Given a mesh and a correspondence between a point in mesh space and
+            a point in scene space, determine the best fit pose of the mesh.
+        '''
+        R = np.eye(3)
+        o = sceneKp
+        meshFaces = mesh.Faces - meshKp
+        R, o = self.runICP(R, o, meshFaces, mesh.Normals)
+        if R is None or o is None:
+            return None, None
+
+        return R, o - meshKp @ R.T
+
+    def validatePose(self, mesh : Mesh, pose):
+        ''' Given a mesh, pose, and representation of the scene (self.SceneKd), figure out how
+            good the pose is at describing the scene.
+
+            Then return True if its good enough, and False otherwise.
+        '''
+        R, o = pose
+        if R is None or o is None:
+            return False
+        nearbyDistances, nearbyPoints_ind = self.SceneKd.query(o.reshape((1,3)), k = 300, distance_upper_bound = mesh.Radius)
+        nearbyPoints_ind = np.array(nearbyPoints_ind)
+        nearbyPoints = self.Scene[nearbyPoints_ind[nearbyPoints_ind < len(self.Scene)]]
+
+        nearbyPoints = (nearbyPoints - o) @ R
+        distanceToMesh = mesh.distanceQuery(nearbyPoints)
+        outliers = np.sum(distanceToMesh > self.MaxDistanceError)
+        inliers = np.sum(np.abs(distanceToMesh) <= self.MaxDistanceError)
+        # print(outliers, inliers)
+        return True
+        if outliers > 0:
+            return False
+        if inliers < 60:
+            return False
+        return True
+
+    def runICP(self, R, o, mesh, meshNormals):
+        ''' Given a current pose (R,  o) for a mesh, use ICP to iterate
+        and find a better pose that aligns the closest points
+        '''
+        # Parameters for ICP
+        max_iterations = 50 # max iterations for a mesh to preserve performance
+        tolerance = 0.001*len(mesh) # when to stop ICP -> cumulative error
+        distance_threshold = 0.1 # 2 cm away for closest point
+
+        # starting value for exit conditions
+        number_iterations = 0
+        error = np.inf
+
+        while (error > tolerance) and (number_iterations < max_iterations):
+            # Compute the nearest point in the point cloud for each point in the model
+
+            face_points = mesh @ R.T + o
+            distances, closest_indices = self.SceneKd.query(face_points, 1)
+            closest_points = self.Scene[closest_indices]
+
+            closeEnough = distances < distance_threshold
+            s_vals = closest_points[closeEnough]
+            m_vals = face_points[closeEnough]
+            if len(s_vals) < 3:
+                return None, None
+
+
+            #########################################
+            # Ability to add weights to the points  #
+            #########################################
+
+            # All ones is no-weighting
+            weights = np.ones((len(s_vals),))
+
+            # # weights based on distance
+            # weights = 1.0 - (np.abs(distances[closeEnough])/distance_threshold)
+
+            # # weights based on normals
+            # weights = np.abs(np.sum(self.SceneNormals[closest_indices][closeEnough]*(meshNormals[closeEnough] @ R.T),axis=1))
+
+
+            # print("weights:",weights)
+
+            weights_matrix = np.diag(weights)
+
+            centroid_s = np.divide(s_vals.T @ weights ,np.sum(weights))
+            centroid_m = np.divide(m_vals.T @ weights ,np.sum(weights))
+
+            s_vals -= centroid_s
+            m_vals -= centroid_m
+            S = m_vals.T @ weights_matrix @ s_vals
+            U, sigma, Vh = np.linalg.svd(S)
+            V = np.transpose(Vh)
+
+            # Rotation using SVD
+            R_new = V @ U.T
+            t = (centroid_s - centroid_m @ R_new.T)
+
+            # print("ICP R:", R_new, " T: ",t)
+            # print("Centroid S:",centroid_s, "Centroid M:", centroid_m)
+            # print("LEN: ", len(s_vals))
+
+            # Update poses - NOTE: translation and rotation
+            # are with respect to the previous values for rotation and translation
+            # print("OLD R:", R, " T:",o)
+            R, o =   R_new @ R, o @ R_new.T + t
+            # print("NEW R:", R, " T:", o)
+
+            # Compute the summed error E(R,t) to determine whether another iteration should be done
+            face_points_temp = mesh @ R.T + o
+            distances_temp, closest_indices_temp = self.SceneKd.query(face_points_temp, 1)
+            closest_points_temp = self.Scene[closest_indices_temp]
+            error = np.sum(np.linalg.norm(closest_points_temp-face_points_temp,axis=1))
+            # print("ERROR ", error)
+            number_iterations += 1
+
+        print(number_iterations)
+        return R, o
