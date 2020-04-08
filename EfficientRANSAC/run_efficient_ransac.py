@@ -14,7 +14,7 @@ def flipNormals(cloudNormals):
             cloudNormals[i] = -n
 
 def main():
-    with open('Test_Scenes/Cloud_primitive_playground.json') as fin:
+    with open('Test_Scenes/Cloud_sphere.json') as fin:
         cloud = []
         screwCloud = np.array(json.load(fin))
         for p in screwCloud:
