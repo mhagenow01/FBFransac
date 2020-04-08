@@ -6,6 +6,9 @@ from Verbosifier import verbose
 from KeyPointGenerator import KeyPointGenerator
 from pykdtree.kdtree import KDTree
 from Mesh import Mesh
+from scipy.stats import special_ortho_group
+import random
+
 
 class ModelFinder:
     def __init__(self):
@@ -70,7 +73,7 @@ class ModelFinder:
         R = np.eye(3)
         o = sceneKp
         meshFaces = mesh.Faces - meshKp
-        R, o = self.runICP(R, o, meshFaces, mesh.Normals)
+        R, o, error = self.ICPrandomRestarts(R, o, meshFaces, mesh.Normals)
         if R is None or o is None:
             return None, None
 
@@ -104,6 +107,27 @@ class ModelFinder:
         if inliers < 60:
             return False
         return True
+
+
+    def ICPrandomRestarts(self,R,o,mesh, meshNormals):
+        number_restarts = 500
+        best_error = np.inf
+
+        for ii in range(0,number_restarts):
+            R = special_ortho_group.rvs(3) # random restart for R_initial
+
+            o_pert = 0.1*np.array([random.random()-0.5, random.random()-0.5,random.random()-0.5]).reshape((1,3))
+            # print(o)
+            # print(o_pert)
+            # print(o+o_pert)
+
+            R_temp, o_temp, error = self.runICP(R,o+o_pert,mesh,meshNormals)
+
+            if error<best_error:
+                best_error = error
+                best_R, best_o = R_temp, o_temp
+
+        return best_R, best_o, best_error
 
     def runICP(self, R, o, mesh, meshNormals):
         ''' Given a current pose (R,  o) for a mesh, use ICP to iterate
@@ -182,4 +206,4 @@ class ModelFinder:
             number_iterations += 1
 
         print(number_iterations)
-        return R, o
+        return R, o, error
