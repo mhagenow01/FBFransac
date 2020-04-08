@@ -20,8 +20,9 @@ class KeyPointGenerator:
         ''' Given a cloud, make 3d binary voxel grid
             Then get the distance to the nearest 1 voxel at each grid point.
         '''
-        origin = np.min(cloud, 0)
-        extent = np.max(cloud, 0)
+        buffer = 20
+        origin = np.min(cloud, 0) - buffer * binsize
+        extent = np.max(cloud, 0) + buffer * binsize
         shape = np.array((extent - origin) // binsize, dtype = np.int)
         
         distanceField = np.full(shape, 1)
@@ -42,15 +43,15 @@ class KeyPointGenerator:
         '''
         fx = correlate(distanceField, np.array([
             [[-1, 0, 1]]
-        ]), mode = 'nearest') / (self.BinSize * 2)
+        ]), mode = 'constant') / (self.BinSize * 2)
         fy = correlate(distanceField, np.array([
             [[-1],
             [0],
             [1]]
-        ]), mode = 'nearest') / (self.BinSize * 2)
+        ]), mode = 'constant') / (self.BinSize * 2)
         fz = correlate(distanceField, np.array([
             [[-1]], [[0]], [[1]]
-        ]), mode = 'nearest') / (self.BinSize * 2)
+        ]), mode = 'constant') / (self.BinSize * 2)
         return fx, fy, fz
 
 

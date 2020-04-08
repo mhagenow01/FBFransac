@@ -34,18 +34,6 @@ def main():
     finder.set_scene(noisyCloud)
     instances = finder.findInstances()
 
-    # MATPLOTLIB PLOTTING
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-
-    for m, sceneKp, meshKp, pose in instances:
-        mesh_temp_pts_tx = m.Faces @ pose[0] + pose[1]
-        ax.scatter(mesh_temp_pts_tx[:, 0], mesh_temp_pts_tx[:, 1], mesh_temp_pts_tx[:, 2], color='red')
-
-    ax.scatter(noisyCloud[:, 0], noisyCloud[:, 1], noisyCloud[:, 2], color='blue')
-    plt.show()
-
-
     # Plot the Cloud and the meshes using Open3D
     plotting_objects = []
 
@@ -56,11 +44,11 @@ def main():
     plotting_objects.append(pcd)
 
     # Add in all the found meshes
-    for m, sceneKp, meshKp, pose in instances:
+    for m, pose in instances:
         # TODO: add a way to get the model file from the found instances
         mesh = o3d.io.read_triangle_mesh("Models/ToyScrew-Yellow.stl")
         mesh.rotate(pose[0]) #TODO: check this once all (R,o) stuff is figured out
-        mesh.translate(pose[1]) #TODO: check this once all (R,o) stuff is figured out
+        mesh.translate(pose[1].reshape((3,))) #TODO: check this once all (R,o) stuff is figured out
         plotting_objects.append(mesh)
 
     o3d.visualization.draw_geometries(plotting_objects)
