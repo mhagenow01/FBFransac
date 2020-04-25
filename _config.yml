@@ -1,3 +1,3 @@
 theme: jekyll-theme-cayman
-title: [Face-Based-Features RANSAC]
+title: [Face and Medial-Axis 3D Pose Recognition (FAMrec)]
 description: [Implements object pose estimation for arbitrary geomtries (.stl) to a scene described by a point cloud.]
