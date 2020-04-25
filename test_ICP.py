@@ -3,9 +3,9 @@ from Mesh import Mesh
 import numpy as np
 import json
 from ModelFinder import ModelFinder
-# import matplotlib.pyplot as plt
-# import open3d as o3d
-# from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+import open3d as o3d
+from mpl_toolkits.mplot3d import Axes3D
 
 def main():
     ''' Given a cloud and meshes to find this will invoke
@@ -13,9 +13,10 @@ def main():
     The final result is plotted using Open3d 
     '''
 
-    mesh_files = ['Models/ToyScrew-Yellow.stl']
-    scene = 'Models/ScrewScene.json'
+    mesh_files = ['Models/hammer.stl']
+    scene = 'Models/Cloud_3_hammers.json'
     gridResolution = 0.001
+    gridResolution = 0.01
 
     Verbosifier.enableVerbosity()
 
@@ -37,15 +38,18 @@ def main():
                         [0.0, 1.0, 0.0],
                        [0.0, 0.0, 1.0]])
 
-    r = np.array([[-0.63071587,  0.73215234,  0.25719727],
-                  [0.27241566,  0.51923612, -0.81005158],
-                  [-0.72662727, -0.44084783, -0.52694022]])
+    # r = np.array([[-0.63071587,  0.73215234,  0.25719727],
+    #               [0.27241566,  0.51923612, -0.81005158],
+    #               [-0.72662727, -0.44084783, -0.52694022]])
 
     # These are for the screw scene!!! (-0.02, -0.150, 0.38)
-    o = np.array([-0.02, -0.150, 0.40])
+    # o = np.array([-0.02, -0.150, 0.40])
+    o = np.array([0.0, 0.0, 0.0])
 
     r,o,error = finder.ICPrandomRestarts(r,o,mesh_temp.Faces,mesh_temp.Normals,mesh_temp.Sizes)
     # r,o,error = finder.runICP(r,o,mesh_temp.Faces,mesh_temp.Normals,mesh_temp.Sizes)
+
+    print("ERROR:",error)
 
     # Plot the Cloud and the meshes using Open3D
     plotting_objects = []
@@ -68,9 +72,8 @@ def main():
     print("O:",o)
     print("R:",r)
 
-
     # TODO: add a way to get the model file from the found instances
-    mesh = o3d.io.read_triangle_mesh("Models/ToyScrew-Yellow.stl")
+    mesh = o3d.io.read_triangle_mesh("Models/hammer.stl")
     mesh.rotate(r,center=False) #TODO: check this once all (R,o) stuff is figured out
     mesh.translate(o.reshape((3,)))  # TODO: check this once all (R,o) stuff is figured out
     plotting_objects.append(mesh)

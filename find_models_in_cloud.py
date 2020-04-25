@@ -13,8 +13,8 @@ def main():
     The final result is plotted using Open3d 
     '''
 
-    mesh_files = ['Models/ToyScrew-Yellow.stl']
-    scene = 'Models/Cloud_assorted_objects.json'
+    mesh_files = ['Models/hammer.stl']
+    scene = 'Models/Cloud_3_hammers.json'
     gridResolution = 0.001
 
     Verbosifier.enableVerbosity()
@@ -47,7 +47,7 @@ def main():
     for m, pose in instances:
         # TODO: add a way to get the model file from the found instances
         mesh = o3d.io.read_triangle_mesh("Models/ToyScrew-Yellow.stl")
-        mesh.rotate(pose[0]) #TODO: check this once all (R,o) stuff is figured out
+        mesh.rotate(pose[0],center=False) #TODO: check this once all (R,o) stuff is figured out
         mesh.translate(pose[1].reshape((3,))) #TODO: check this once all (R,o) stuff is figured out
         plotting_objects.append(mesh)
 

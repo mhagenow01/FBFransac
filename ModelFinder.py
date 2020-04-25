@@ -106,13 +106,13 @@ class ModelFinder:
 
 
     def ICPrandomRestarts(self,R,o,mesh, meshNormals, meshSizes):
-        number_restarts = 20
+        number_restarts = 100
         best_error = np.inf
 
         for ii in range(0,number_restarts):
             R = special_ortho_group.rvs(3) # random restart for R_initial
 
-            o_pert = 0.1*np.array([random.random()-0.5, random.random()-0.5,random.random()-0.5]).reshape((1,3))
+            o_pert = 0.00*np.array([random.random()-0.5, random.random()-0.5,random.random()-0.5]).reshape((1,3))
             # print(o)
             # print(o_pert)
             # print(o+o_pert)
@@ -131,8 +131,9 @@ class ModelFinder:
         '''
         # Parameters for ICP
         max_iterations = 10 # max iterations for a mesh to preserve performance
-        tolerance = 0.001*len(mesh) # when to stop ICP -> cumulative error
-        distance_threshold = 0.005 # 2 cm away for closest point
+        keep_per = 0.2 # percentage to keep for occlusion-handling
+        tolerance = 0.001*len(mesh)*keep_per # when to stop ICP -> cumulative error
+        distance_threshold = 0.1 # 10 cm away for closest point TODO: make this based on mesh radius?
 
         # starting value for exit conditions
         number_iterations = 0
@@ -171,26 +172,16 @@ class ModelFinder:
             # weights = np.abs(np.sum(self.SceneNormals[closest_indices][closeEnough]*(meshNormals[closeEnough] @ R.T),axis=1))
 
 
-            # print("weights:",weights)
-
+            ########################################
+            # Robustness to Occlusions             #
+            ########################################
 
             # Throw out a percentage of outliers
             weight_ind = np.argsort(weights)
-
-            s_vals_old = s_vals
-            m_vals_old = m_vals
-            weights_old = weights
-
-            s_vals = s_vals[weight_ind[0:int(0.75*len(s_vals))],:]
-            m_vals = m_vals[weight_ind[0:int(0.75*len(s_vals))],:]
-            weights = weights[weight_ind[0:int(0.75*len(s_vals))]]
-
-            print(np.shape((s_vals_old)))
-            print(np.shape((s_vals)))
-            print(np.shape(weights_old))
-            print(np.shape(weights))
-
-
+            trunc = keep_per*len(s_vals) # percentage of points to keep for occlusion
+            s_vals = s_vals[weight_ind[-int(trunc):],:]
+            m_vals = m_vals[weight_ind[-int(trunc):],:]
+            weights = weights[weight_ind[-int(trunc):]]
 
 
             weights_matrix = np.diag(weights)
@@ -222,8 +213,9 @@ class ModelFinder:
             # Compute the summed error E(R,t) to determine whether another iteration should be done
             face_points_temp = mesh @ R.T + o
             distances_temp, closest_indices_temp = self.SceneKd.query(face_points_temp, 1)
-            closest_points_temp = self.Scene[closest_indices_temp]
-            error = np.sum(np.linalg.norm(closest_points_temp-face_points_temp,axis=1))
+            ind_trunc = np.argsort(distances_temp)[0:int(keep_per*len(distances_temp))]
+            closest_points_temp = self.Scene[closest_indices_temp][ind_trunc]
+            error = np.sum(np.linalg.norm(closest_points_temp-face_points_temp[ind_trunc],axis=1))
             # print("ERROR ", error)
             number_iterations += 1
 
