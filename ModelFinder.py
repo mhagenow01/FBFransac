@@ -73,7 +73,7 @@ class ModelFinder:
         R = np.eye(3)
         o = sceneKp
         meshFaces = mesh.Faces - meshKp
-        R, o, error = self.ICPrandomRestarts(R, o, meshFaces, mesh.Normals)
+        R, o, error = self.ICPrandomRestarts(R, o, meshFaces, mesh.Normals, mesh.Sizes)
         if R is None or o is None:
             return None, None
 
@@ -105,8 +105,8 @@ class ModelFinder:
         return True
 
 
-    def ICPrandomRestarts(self,R,o,mesh, meshNormals):
-        number_restarts = 500
+    def ICPrandomRestarts(self,R,o,mesh, meshNormals, meshSizes):
+        number_restarts = 20
         best_error = np.inf
 
         for ii in range(0,number_restarts):
@@ -117,7 +117,7 @@ class ModelFinder:
             # print(o_pert)
             # print(o+o_pert)
 
-            R_temp, o_temp, error = self.runICP(R,o+o_pert,mesh,meshNormals)
+            R_temp, o_temp, error = self.runICP(R,o+o_pert,mesh,meshNormals, meshSizes)
 
             if error<best_error:
                 best_error = error
@@ -125,14 +125,14 @@ class ModelFinder:
 
         return best_R, best_o, best_error
 
-    def runICP(self, R, o, mesh, meshNormals):
+    def runICP(self, R, o, mesh, meshNormals, meshSizes):
         ''' Given a current pose (R,  o) for a mesh, use ICP to iterate
         and find a better pose that aligns the closest points
         '''
         # Parameters for ICP
-        max_iterations = 50 # max iterations for a mesh to preserve performance
+        max_iterations = 10 # max iterations for a mesh to preserve performance
         tolerance = 0.001*len(mesh) # when to stop ICP -> cumulative error
-        distance_threshold = 0.1 # 2 cm away for closest point
+        distance_threshold = 0.005 # 2 cm away for closest point
 
         # starting value for exit conditions
         number_iterations = 0
@@ -149,7 +149,7 @@ class ModelFinder:
             s_vals = closest_points[closeEnough]
             m_vals = face_points[closeEnough]
             if len(s_vals) < 3:
-                return None, None
+                return np.eye(3), np.zeros((1,3)), np.inf
 
 
             #########################################
@@ -157,16 +157,41 @@ class ModelFinder:
             #########################################
 
             # All ones is no-weighting
-            weights = np.ones((len(s_vals),))
+            # weights = np.ones((len(s_vals),))
 
             # # weights based on distance
-            # weights = 1.0 - (np.abs(distances[closeEnough])/distance_threshold)
+            weights = (1.0 - (np.abs(distances[closeEnough])/distance_threshold))
+            weights_p1 = (1.0 - (np.abs(distances[closeEnough])/distance_threshold)).reshape((len(s_vals),1))
+            weights_p2 = (meshSizes[closeEnough] / np.max(meshSizes)).reshape((len(s_vals),1))
+            weights = np.multiply(weights_p1,weights_p2).reshape((len(s_vals),))
+            # # weights based on the size of the mesh faces
+            # weights = (meshSizes[closeEnough]/np.max(meshSizes)).reshape((len(s_vals),))
 
             # # weights based on normals
             # weights = np.abs(np.sum(self.SceneNormals[closest_indices][closeEnough]*(meshNormals[closeEnough] @ R.T),axis=1))
 
 
             # print("weights:",weights)
+
+
+            # Throw out a percentage of outliers
+            weight_ind = np.argsort(weights)
+
+            s_vals_old = s_vals
+            m_vals_old = m_vals
+            weights_old = weights
+
+            s_vals = s_vals[weight_ind[0:int(0.75*len(s_vals))],:]
+            m_vals = m_vals[weight_ind[0:int(0.75*len(s_vals))],:]
+            weights = weights[weight_ind[0:int(0.75*len(s_vals))]]
+
+            print(np.shape((s_vals_old)))
+            print(np.shape((s_vals)))
+            print(np.shape(weights_old))
+            print(np.shape(weights))
+
+
+
 
             weights_matrix = np.diag(weights)
 
@@ -184,6 +209,7 @@ class ModelFinder:
             t = (centroid_s - centroid_m @ R_new.T)
 
             # print("ICP R:", R_new, " T: ",t)
+            # print(" T: ",t)
             # print("Centroid S:",centroid_s, "Centroid M:", centroid_m)
             # print("LEN: ", len(s_vals))
 
@@ -201,5 +227,5 @@ class ModelFinder:
             # print("ERROR ", error)
             number_iterations += 1
 
-        print(number_iterations)
+        # print(number_iterations)
         return R, o, error
