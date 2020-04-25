@@ -2,10 +2,10 @@ import Verbosifier
 from Mesh import Mesh
 import numpy as np
 import json
-import matplotlib.pyplot as plt
 from ModelFinder import ModelFinder
-import open3d as o3d
-from mpl_toolkits.mplot3d import Axes3D
+# import matplotlib.pyplot as plt
+# import open3d as o3d
+# from mpl_toolkits.mplot3d import Axes3D
 
 def main():
     ''' Given a cloud and meshes to find this will invoke
@@ -14,7 +14,7 @@ def main():
     '''
 
     mesh_files = ['Models/ToyScrew-Yellow.stl']
-    scene = 'Models/Cloud_rotated_screw.json'
+    scene = 'Models/ScrewScene.json'
     gridResolution = 0.001
 
     Verbosifier.enableVerbosity()
@@ -32,16 +32,20 @@ def main():
         meshes.append(mesh_temp)
     finder.set_meshes(meshes)
     finder.set_scene(noisyCloud)
-    print(np.shape(mesh_temp.Faces))
 
     r = np.array([[1.0, 0.0, 0.0],
-                        [0.0, -1.0, 0.0],
-                       [0.0, 0.0, -1.0]])
+                        [0.0, 1.0, 0.0],
+                       [0.0, 0.0, 1.0]])
 
-    o = np.array([0.0, 0.0, -0.02])
+    r = np.array([[-0.63071587,  0.73215234,  0.25719727],
+                  [0.27241566,  0.51923612, -0.81005158],
+                  [-0.72662727, -0.44084783, -0.52694022]])
 
-    r,o,error = finder.ICPrandomRestarts(r,o,mesh_temp.Faces,mesh_temp.Normals)
+    # These are for the screw scene!!! (-0.02, -0.150, 0.38)
+    o = np.array([-0.02, -0.150, 0.40])
 
+    r,o,error = finder.ICPrandomRestarts(r,o,mesh_temp.Faces,mesh_temp.Normals,mesh_temp.Sizes)
+    # r,o,error = finder.runICP(r,o,mesh_temp.Faces,mesh_temp.Normals,mesh_temp.Sizes)
 
     # Plot the Cloud and the meshes using Open3D
     plotting_objects = []
@@ -52,12 +56,23 @@ def main():
     pcd.paint_uniform_color(np.array([0.2, 0.2, 0.8]).reshape((3,1)))
     plotting_objects.append(pcd)
 
+
+    # Face points
+    face_points = mesh_temp.Faces @ r.T + o
+    pcd2 = o3d.geometry.PointCloud()
+    pcd2.points = o3d.utility.Vector3dVector(face_points)
+    pcd2.paint_uniform_color(np.array([0.2, 0.8, 0.2]).reshape((3, 1)))
+    plotting_objects.append(pcd2)
+
     # Add in all the found meshes
+    print("O:",o)
+    print("R:",r)
+
 
     # TODO: add a way to get the model file from the found instances
     mesh = o3d.io.read_triangle_mesh("Models/ToyScrew-Yellow.stl")
-    mesh.rotate(r) #TODO: check this once all (R,o) stuff is figured out
-    mesh.translate(o) #TODO: check this once all (R,o) stuff is figured out
+    mesh.rotate(r,center=False) #TODO: check this once all (R,o) stuff is figured out
+    mesh.translate(o.reshape((3,)))  # TODO: check this once all (R,o) stuff is figured out
     plotting_objects.append(mesh)
 
     o3d.visualization.draw_geometries(plotting_objects)
