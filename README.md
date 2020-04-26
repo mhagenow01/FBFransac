@@ -3,6 +3,8 @@ We present an implementation of our medial-axis and face-based 3D Pose Recogniti
 a library of meshes and fits the poses in a provided single point cloud. Our implementation is meant to be used in an online
 method, meaning there is an emphasis on performance.
 
+![implementation teaser](https://mhagenow01.github.io/FBFransac/images/solution_teaser.png "Implementation Teaser")
+
 ### Motivation
 There are many industries where 3D recognition of objects can be useful. For example, autonomous driving can benefit
 from being able to quickly recognize and localize objects in the environment. We desire a reliable
