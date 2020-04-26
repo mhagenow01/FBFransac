@@ -15,7 +15,7 @@ differentiation in the environment.
 When originally searching for a method for our application, we were unable to find a reliabe
 method that could identify objects in our prototype environment. 
 
-![alt text](images/problem_teaser.png "Example of problem")
+![visual problem statement](https://mhagenow01.github.io/FBFransac/images/problem_teaser.png "Problem Statement")
 
 Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
 
@@ -37,6 +37,10 @@ We provide several classes that do stuff!
 ##### Medial Axis Matching
 ##### Modified Iterative-Closest Point
 Describe the high-level reqts and the gist of ICP. Add pseudocode.
+##### Examples
+We provide a main interface that allows for specification of the point cloud and the meshes. It will find
+mesh instances in the point cloud and display results using Open3D. Note: The first time you run for a particular mesh,
+it will need to run the mesh pre-processing which can take 1-2 minutes.
 
 ### Results
 Basic recognition - Unit testing results
