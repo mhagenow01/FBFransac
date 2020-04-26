@@ -15,6 +15,7 @@ differentiation in the environment.
 When originally searching for a method for our application, we were unable to find a reliabe
 method that could identify objects in our prototype environment. 
 
+![alt text](images/problem_teaser.png "Example of problem")
 
 Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
 
