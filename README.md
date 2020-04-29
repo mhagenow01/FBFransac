@@ -1,4 +1,5 @@
 ## Overview
+![visual problem statement](https://mhagenow01.github.io/FBFransac/images/problem_teaser.png "Problem Statement")
 We present an implementation of our medial-axis and face-based 3D Pose Recognition Algorithm. This algorithm takes
 a library of meshes and fits the poses in a provided single point cloud. Our implementation is meant to be used in an online
 method, meaning there is an emphasis on performance.
@@ -14,10 +15,10 @@ are often known ahead of time, but the precise locations may not be known, warra
 Notably, as much of the development involves composites and lightweight metals, there is little color
 differentiation in the environment.
 
-When originally searching for a method for our application, we were unable to find a reliabe
+When originally searching for a method for our application, we were unable to find a reliable
 method that could identify objects in our prototype environment. 
 
-![visual problem statement](https://mhagenow01.github.io/FBFransac/images/problem_teaser.png "Problem Statement")
+![robot and camera setup](https://mhagenow01.github.io/FBFransac/images/nasa_uli_setup.JPG "Robot and Camera Setup")
 
 Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
 
@@ -28,16 +29,52 @@ CODE CODE CODE
 For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
 
 ### Approach
+Existing approaches to arbitrary mesh recognition either use a neural-net or RANSAC based kernel. In our work, we
+have developed a method that uses the medial axis to determine hypothesis mesh keypoints and a modified version of
+Iterative-closest point (ICP) to determine a more precise mesh pose. In our approach, we try our best to avoid
+random sampling and to always rely on geometric features for everything.
 
 ### Implementation
 #### Required Packages
 We provide a full package python package for our implementation. This was tested using python 3.6.
-
+TODO: It needs these packages
 #### Data Structure
 We provide several classes that do stuff!
 #### Core Algorithm
 ##### Medial Axis Matching
 ##### Modified Iterative-Closest Point
+When determining the pose of 3D objects from noisy data, it is common to use an Iterative-closest point algorithm 
+as a means of refining an initial estimate of the object pose. We extend the core algorithm in two ke ways to make
+it amenable to our object recognition formulation.
+
+ICP reminder
+
+First, we define a custom weighting function cognizant of our face-matching based approach
+to recognition. The core ICP algorithm is designed to compute the optimal rotation and
+translation to align two sets of points. Often, these will be simliar types of data (e.g., points from a point cloud and points sampled on a mesh).
+In our algorithm, we compare the center points of the mesh faces to the points on the point cloud. Naturally, this prescribes some error
+for the matching related to the size of the faces. In order to combat this, we implement a weighting function
+that punishes large mesh faces in the fitting. Our weighting function also considers distance between the matching points
+as is a common choice in weighting functions. Our final weighting functions combines these two ideas and can be computed as:
+
+<img src="https://render.githubusercontent.com/render/math?math=w_i=(1-\frac{d_i}{d_t})(\frac{A_i}{max_j(A_j)})">
+
+where <img src="https://render.githubusercontent.com/render/math?math=d_i"> is the distance between the face and the closest point in the point cloud, 
+<img src="https://render.githubusercontent.com/render/math?math=d_t"> is the maximum distance considered
+in the ICP algorithm, <img src="https://render.githubusercontent.com/render/math?math=A_i"> is the area of the mesh face,
+and <img src="https://render.githubusercontent.com/render/math?math=max_j(A_j)"> is the largest face in the mesh.
+
+Second, we implement a random restarts framework around the ICP algorithm. The medial axis reliably gives candidate
+positions for the mesh, but not rotation. In order to prevent the ICP from getting caught in local minima during iterations,
+we use a random restarts approach where each restart is given a random orientation (drawn from the Haar distribution for SO(3)).
+
+Finally, to provide a level of robustness to Occlusion that is common particularly when point clouds
+are constructed from a single image, we implement the occlusion method described in . During each ICP iteration
+only a percentage of the faces are considered selected as the closest faces. From experimental tuning, we choose to use
+80 percent of the faces, which allows for some Occlusion-handling while not skewing results for non-occluded objects.
+
+
+
 Describe the high-level reqts and the gist of ICP. Add pseudocode.
 ##### Examples
 We provide a main interface that allows for specification of the point cloud and the meshes. It will find
@@ -46,8 +83,17 @@ it will need to run the mesh pre-processing which can take 1-2 minutes.
 
 ### Results
 Basic recognition - Unit testing results
+#### General results and General Performance
 Recognition under noise
 Recognition under occlusion
+#### Recognition under Occlusion
+TODO: kevin - does medial axis get effected by occlusions
+To test our ICP algorithm against occlusions, we artifically remove sections of a screw model and use
+ICP to recognize the pose. In general, we have found that our algorithm is robust to small amounts of occlusions (<30%).
+Below, we show one example of Occlusion testing. At around 50 percent occlusion, the mesh fit starts to have noticable error.
+At approximately 80 percent, the mesh fit is incorrect.
+
+![occlusion testing](https://mhagenow01.github.io/FBFransac/images/percent_occlusion_ICP.png "Occlusion Testing")
 
 ### Issues/Limitations
 
