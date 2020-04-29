@@ -36,7 +36,29 @@ random sampling and to always rely on geometric features for everything.
 ### Implementation
 #### Required Packages
 We provide a full package python package for our implementation. This was tested using python 3.6.
-TODO: It needs these packages
+
+TODO: make this right
+required packages: numpy,trimesh,point_cloud_utils,pykdtree,pyntcloud
+
+package install directions:
+
+```
+pip3 install numpy
+pip3 install rtree
+sudo apt-get install libspatialindex-dev
+pip3 install trimesh
+pip3 install git+git://github.com/fwilliams/point-cloud-utils
+pip3 install pykdtree
+pip3 install pyntcloud
+pip3 install progressbar
+pip install open3d
+or conda install -c conda-forge point_cloud_utils
+```
+
+
+
+
+
 #### Data Structure
 We provide several classes that do stuff!
 #### Core Algorithm
