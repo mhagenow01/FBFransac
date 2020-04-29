@@ -1,5 +1,4 @@
 ## Overview
-![visual problem statement](https://mhagenow01.github.io/FBFransac/images/problem_teaser.png "Problem Statement")
 We present an implementation of our medial-axis and face-based 3D Pose Recognition Algorithm. This algorithm takes
 a library of meshes and fits the poses in a provided single point cloud. Our implementation is meant to be used in an online
 method, meaning there is an emphasis on performance.
@@ -69,13 +68,10 @@ positions for the mesh, but not rotation. In order to prevent the ICP from getti
 we use a random restarts approach where each restart is given a random orientation (drawn from the Haar distribution for SO(3)).
 
 Finally, to provide a level of robustness to Occlusion that is common particularly when point clouds
-are constructed from a single image, we implement the occlusion method described in . During each ICP iteration
-only a percentage of the faces are considered selected as the closest faces. From experimental tuning, we choose to use
+are constructed from a single image, we implement the occlusion method described in [1] . During each ICP iteration
+only a percentage of the closest corresponding face-point combinations are selected. From experimental tuning, we choose to use
 80 percent of the faces, which allows for some Occlusion-handling while not skewing results for non-occluded objects.
 
-
-
-Describe the high-level reqts and the gist of ICP. Add pseudocode.
 ##### Examples
 We provide a main interface that allows for specification of the point cloud and the meshes. It will find
 mesh instances in the point cloud and display results using Open3D. Note: The first time you run for a particular mesh,
@@ -88,9 +84,9 @@ Recognition under noise
 Recognition under occlusion
 #### Recognition under Occlusion
 TODO: kevin - does medial axis get effected by occlusions
-To test our ICP algorithm against occlusions, we artifically remove sections of a screw model and use
+To test our ICP algorithm against occlusions, we artificially remove sections of a screw model and use
 ICP to recognize the pose. In general, we have found that our algorithm is robust to small amounts of occlusions (<30%).
-Below, we show one example of Occlusion testing. At around 50 percent occlusion, the mesh fit starts to have noticable error.
+Below, we show one example of Occlusion testing. At around 50 percent occlusion, the mesh fit starts to have notable error.
 At approximately 80 percent, the mesh fit is incorrect.
 
 ![occlusion testing](https://mhagenow01.github.io/FBFransac/images/percent_occlusion_ICP.png "Occlusion Testing")
@@ -119,5 +115,6 @@ Based on error, tell the robot to adjust its view for a better recognition?
 
 
 #### References
+[1] P. Liu, Y. Wang, D. Huang and Z. Zhang, "Recognizing Occluded 3D Faces Using an Efficient ICP Variant," 2012 IEEE International Conference on Multimedia and Expo, Melbourne, VIC, 2012, pp. 350-355.
 [1] Chavdar   Papazov,   Sami   Haddadin,   Sven   Parusel,   Kai   Krieger,   and   Darius   Burschka.Rigid3d   geometry   matching   for   grasping   of   known   objects   in   cluttered   scenes.The InternationalJournal  of  Robotics  Research,   31(4):538–553,   2012.doi:10.1177/0278364911436019.URLhttps://doi.org/10.1177/0278364911436019.  
 [2] Charles R. Qi, Li Yi, Hao Su, and Leonidas J. Guibas. Pointnet++: Deep hierarchical feature learning onpoint sets in a metric space.  InProceedings of the 31st International Conference on Neural InformationProcessing Systems, NIPS’17, page 5105–5114, Red Hook, NY, USA, 2017. Curran Associates Inc. ISBN9781510860964
