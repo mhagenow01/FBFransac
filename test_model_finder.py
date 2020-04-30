@@ -12,14 +12,15 @@ from ModelProfile import *
 
 if __name__ == '__main__':
     Verbosifier.enableVerbosity()
-    gridResolution = 0.001
-    with open('Models/Cloud_hand_and_screw_simulated.json') as fin:
+    gridResolution = 0.01
+    with open('Models/ComparisonScenes/Cloud_comparison_scene_1.json') as fin:
         scene = np.array(json.load(fin))
-        #scene = scene[np.linalg.norm(scene, axis = 1) < 0.5]
+    #     #scene = scene[np.linalg.norm(scene, axis = 1) < 0.5]
     # p = Profile()
     # p.enable()
+    print(scene.shape)
     finder = ModelFinder()
-    finder.set_meshes(['Models/ToyScrew-Yellow.stl'], gridResolution)
+    finder.set_meshes(['Models/ComparisonSTLs/hammer.stl'], gridResolution)
     finder.set_scene(scene)
     instances = finder.findInstances()
     # p.disable()

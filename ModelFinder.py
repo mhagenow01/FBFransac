@@ -45,10 +45,10 @@ class ModelFinder:
         '''
         instances = []
         #Idk, try a few of these?
-        for _ in range(100):
+        for _ in range(1000):
             for m, profile in zip(self.Models, self.ModelProfiles):
                 r, meshKeyPoints = profile.sampleRadius()
-                
+                print(r)
                 ind = np.random.choice(range(len(self.Scene)), replace=True)
                 startPoint = self.Scene[ind] + np.random.randn(3) * 0.001
                 sceneKeyPoint = SupportSphere(startPoint.reshape((1,3)).copy())
@@ -57,8 +57,8 @@ class ModelFinder:
                     # TODO: Allow for potentially multiple keypoints per mesh?
                     meshKeyPoint = meshKeyPoints[np.random.choice(range(len(meshKeyPoints)))]
                     pose = self.determinePose(m, meshKeyPoint.X, sceneKeyPoint.X.reshape((1,3)))
+                    print(pose)
                     if self.validatePose(m, pose):
-                        print(pose)
                         instances.append((m, pose))
         return instances
 
