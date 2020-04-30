@@ -8,21 +8,18 @@ import Verbosifier
 from ModelFinder import ModelFinder
 from cProfile import Profile
 from pstats import Stats
+from ModelProfile import *
 
 if __name__ == '__main__':
     Verbosifier.enableVerbosity()
     gridResolution = 0.001
-    mesh = Mesh('Models/ToyScrew-Yellow.stl', gridResolution)
-
     with open('Models/Cloud_hand_and_screw_simulated.json') as fin:
         scene = np.array(json.load(fin))
-        scene = scene[np.linalg.norm(scene, axis = 1) < 0.5]
-
+        #scene = scene[np.linalg.norm(scene, axis = 1) < 0.5]
     # p = Profile()
     # p.enable()
     finder = ModelFinder()
-    finder.set_resolution(gridResolution)
-    finder.set_meshes([mesh])
+    finder.set_meshes(['Models/ToyScrew-Yellow.stl'], gridResolution)
     finder.set_scene(scene)
     instances = finder.findInstances()
     # p.disable()

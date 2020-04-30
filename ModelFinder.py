@@ -8,38 +8,32 @@ from pykdtree.kdtree import KDTree
 from Mesh import Mesh
 from scipy.stats import special_ortho_group
 import random
-
+from ModelProfile import *
+import pickle
+import os
 
 class ModelFinder:
     def __init__(self):
         self.Models = []
+        self.ModelProfiles = []
         self.KeyPointGenerators = []
         self.Scene = None
         self.SceneNormals = None
         self.SceneKd = None
         self.MaxDistanceError = 0.001
-    
-    def _getKeyPointGenFromMesh(self, mesh):
-        # Currently hard coded for the screw model
-        return KeyPointGenerator(0.003, 0.006, 10, 1000)
 
     @verbose()
-    def set_meshes(self, meshes):
-        self.Models = meshes
-        for m in meshes:
-            m.cacheMeshDistance()
-            self.KeyPointGenerators.append(self._getKeyPointGenFromMesh(m))
+    def set_meshes(self, meshFiles, resolution):
+        for f in meshFiles:
+            self.Models.append(Mesh(f, resolution))
+            self.Models[-1].cacheMeshDistance()
+            self.ModelProfiles.append(ObjectProfile.fromMeshFile(f))
     
     @verbose()
     def set_scene(self, cloud):
         self.Scene = cloud
-        self.SceneNormals = pcu.estimate_normals(cloud,10,3)
+        self.SceneNormals = pcu.estimate_normals(cloud, 10, 3)
         self.SceneKd = KDTree(cloud)
-        KeyPointGenerator.setSceneDistanceFieldFromCloud(cloud)
-
-
-    def set_resolution(self, res):
-        KeyPointGenerator.BinSize = res
     
 
     @verbose()
@@ -50,20 +44,22 @@ class ModelFinder:
             Returns: (the mesh, the scene keypoint, the corresponding mesh keypoint)
         '''
         instances = []
-        for m, kg in zip(self.Models, self.KeyPointGenerators):
-            # First generate hypotheses of scene model correspondences.
-            sceneKeyPoints = kg.keyPointsFromScene()
-            # TODO: This should be cached on a per-mesh basis.
-            meshKeyPoints = kg.keyPointsFromField(m.DistanceCache) + m.BoundingBoxOrigin
-            # TODO: Allow for potentially multiple keypoints per mesh?
-            meshKeyPoints = meshKeyPoints[0:1,:]
-            iter = 0
-            for kp in sceneKeyPoints:
-                if 1: # MH: temporary lines just so I can make it only spit out one screw during unit-testing
-                    pose = self.determinePose(m, meshKeyPoints, kp.reshape((1,3)))
+        #Idk, try a few of these?
+        for _ in range(100):
+            for m, profile in zip(self.Models, self.ModelProfiles):
+                r, meshKeyPoints = profile.sampleRadius()
+                
+                ind = np.random.choice(range(len(self.Scene)), replace=True)
+                startPoint = self.Scene[ind] + np.random.randn(3) * 0.001
+                sceneKeyPoint = SupportSphere(startPoint.reshape((1,3)).copy())
+
+                if sceneKeyPoint.iterate(self.Scene, self.SceneKd, r):
+                    # TODO: Allow for potentially multiple keypoints per mesh?
+                    meshKeyPoint = meshKeyPoints[np.random.choice(range(len(meshKeyPoints)))]
+                    pose = self.determinePose(m, meshKeyPoint.X, sceneKeyPoint.X.reshape((1,3)))
                     if self.validatePose(m, pose):
+                        print(pose)
                         instances.append((m, pose))
-                iter+=1
         return instances
 
     def determinePose(self, mesh, meshKp, sceneKp):

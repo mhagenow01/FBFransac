@@ -7,11 +7,18 @@ import pandas as pd
 import json
 
 
-
 def triangle_area(v1, v2, v3):
     # Cross product returns area of parallelogram for two vectors -> divide by 2 for triangle area
     return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1), axis = 1)
 
+def surfaceArea(file):
+    mesh = trimesh.load(file)
+
+    v1_xyz = mesh.vertices[mesh.faces[:,0]]
+    v2_xyz = mesh.vertices[mesh.faces[:,1]]
+    v3_xyz = mesh.vertices[mesh.faces[:,2]]
+
+    return triangle_area(v1_xyz, v2_xyz, v3_xyz).sum(), np.max(v1_xyz, axis=0) - np.min(v1_xyz, axis = 0)
 
 def pointCloudFromMesh(file, n):
     mesh = trimesh.load(file)
