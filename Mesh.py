@@ -15,6 +15,10 @@ from OnDisk import OnDisk
 
 FEATURE_CACHE_DIR = os.path.join(os.curdir,'FeatureCache')
 
+def triangle_area(v1, v2, v3):
+    # Cross product returns area of parallelogram for two vectors -> divide by 2 for triangle area
+    return 0.5 * np.linalg.norm(np.cross(v2 - v1, v3 - v1), axis = 1)
+
 class Mesh(OnDisk):
     def __init__(self, meshFile, distanceFieldBinSize):
         self.trimesh = trimesh.load_mesh(meshFile)
@@ -34,7 +38,16 @@ class Mesh(OnDisk):
             self.computeMeshDistanceField, 
             os.path.split(meshFile)[-1] + 'computeMeshDistanceField' + str(self.BinSize) + '.ftr'
         )
-        
+
+        self.SurfaceArea = self.computeSurfaceArea()
+    
+    def computeSurfaceArea(self):
+        mesh = self.trimesh
+        v1_xyz = mesh.vertices[mesh.faces[:,0]]
+        v2_xyz = mesh.vertices[mesh.faces[:,1]]
+        v3_xyz = mesh.vertices[mesh.faces[:,2]]
+
+        return triangle_area(v1_xyz, v2_xyz, v3_xyz).sum()
 
     @verbose(1000)
     def getPose(self, P, N):
@@ -253,6 +266,7 @@ class Mesh(OnDisk):
         if self.DistanceCache is None:
             return ProximityQuery(self.trimesh).signed_distance(points)
         distances = np.zeros(points.shape[0])
+        print(self.NBins)
         indices = np.array((points - self.BoundingBoxOrigin)/self.BinSize, dtype=np.int)
         infMask = np.any(indices < 0, axis = 1) | np.any(indices >= self.NBins, axis = 1)
         distances[infMask] = -np.inf

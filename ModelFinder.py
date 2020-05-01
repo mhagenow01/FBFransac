@@ -12,6 +12,8 @@ from ModelProfile import *
 import pickle
 import os
 
+DENSITY = 500000 / 7
+
 class ModelFinder:
     def __init__(self):
         self.Models = []
@@ -28,7 +30,7 @@ class ModelFinder:
         for f in meshFiles:
             self.Models.append(Mesh(f, resolution))
             self.ModelFiles.append(f)
-            self.Models[-1].cacheMeshDistance()
+            #self.Models[-1].cacheMeshDistance()
             self.ModelProfiles.append(ObjectProfile.fromMeshFile(f))
     
     @verbose()
@@ -50,7 +52,6 @@ class ModelFinder:
         for _ in range(1000):
             for m, profile, file in zip(self.Models, self.ModelProfiles, self.ModelFiles):
                 r, meshKeyPoints = profile.sampleRadius()
-                print(_,",",r)
                 ind = np.random.choice(range(len(self.Scene)), replace=True)
                 startPoint = self.Scene[ind] + np.random.randn(3) * 0.001
                 sceneKeyPoint = SupportSphere(startPoint.reshape((1,3)).copy())
@@ -70,12 +71,12 @@ class ModelFinder:
         '''
         R = np.eye(3)
         o = sceneKp
-        meshFaces = mesh.Faces - meshKp
+        meshFaces = mesh.Faces# - meshKp
         R, o, error = self.ICPrandomRestarts(R, o, meshFaces, mesh.Normals, mesh.Sizes)
         if R is None or o is None:
             return None, None
 
-        return R, o - meshKp @ R.T
+        return R, o# - meshKp @ R.T
 
     def validatePose(self, mesh : Mesh, pose):
         ''' Given a mesh, pose, and representation of the scene (self.SceneKd), figure out how
@@ -86,15 +87,20 @@ class ModelFinder:
         R, o = pose
         if R is None or o is None:
             return False
-        nearbyDistances, nearbyPoints_ind = self.SceneKd.query(o.reshape((1,3)), k = 300, distance_upper_bound = mesh.Radius)
+        nearbyDistances, nearbyPoints_ind = self.SceneKd.query(o.reshape((1,3)), k = 10000, distance_upper_bound = mesh.Radius)
         nearbyPoints_ind = np.array(nearbyPoints_ind)
         nearbyPoints = self.Scene[nearbyPoints_ind[nearbyPoints_ind < len(self.Scene)]]
+        maxPoints = DENSITY * mesh.SurfaceArea
+        if len(nearbyPoints) < 0.5 * maxPoints:
+            return False
 
         nearbyPoints = (nearbyPoints - o) @ R
         distanceToMesh = mesh.distanceQuery(nearbyPoints)
         outliers = np.sum(distanceToMesh > self.MaxDistanceError)
         inliers = np.sum(np.abs(distanceToMesh) <= self.MaxDistanceError)
         # print(outliers, inliers)
+        print(maxPoints, outliers, inliers)
+        return inliers / maxPoints > 0.2# and outliers / maxPoints < 0.1
         if outliers > 0:
             return False
         if inliers < 60:
@@ -105,11 +111,11 @@ class ModelFinder:
     def ICPrandomRestarts(self,R,o,mesh, meshNormals, meshSizes):
         number_restarts = 10
         best_error = np.inf
-        max_faces = 1000
+        max_faces = 100
 
         # Downsample the faces if necessary
-        if len(mesh)>1000:
-            indices = np.random.choice(len(mesh),1000,replace=False)
+        if len(mesh)>max_faces:
+            indices = np.random.choice(len(mesh),max_faces,replace=False)
             mesh=mesh[indices,:]
             meshNormals=meshNormals[indices,:]
             meshSizes=meshSizes[indices,:]

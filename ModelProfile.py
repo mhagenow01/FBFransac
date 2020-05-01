@@ -63,7 +63,6 @@ class SupportSphere:
 
         self.X += dx
         if np.linalg.norm(dx) < EPSILON:
-            print(directionality)
             return False
         return None
 

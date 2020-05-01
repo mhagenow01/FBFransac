@@ -16,7 +16,7 @@ def main():
 
     mesh_files = ['Models/ComparisonSTLs/hammer.stl']
     scene = 'Models/ComparisonScenes/Cloud_comparison_scene_1.json'
-    gridResolution = 0.01
+    gridResolution = 0.002
 
     Verbosifier.enableVerbosity()
 
