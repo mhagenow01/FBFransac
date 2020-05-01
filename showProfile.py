@@ -1,4 +1,4 @@
-from test_sphere_thing import ObjectProfile, SupportSphere
+from ModelProfile import ObjectProfile, SupportSphere
 import pickle
 import sys
 import matplotlib.pyplot as plt

@@ -93,7 +93,6 @@ class ModelFinder:
         outliers = np.sum(distanceToMesh > self.MaxDistanceError)
         inliers = np.sum(np.abs(distanceToMesh) <= self.MaxDistanceError)
         # print(outliers, inliers)
-        return True
         if outliers > 0:
             return False
         if inliers < 60:

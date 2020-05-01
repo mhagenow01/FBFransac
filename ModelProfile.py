@@ -12,10 +12,25 @@ import os
 import glob
 from PointCloudFromMesh import surfaceArea, pointCloudFromMesh
 
+def sameHemisphere(points):
+    for p in points:
+        if np.all(np.sign(points @ p.T) == 1):
+            return True
+    for i in range(len(points)):
+        for j in range(len(points)):
+            if i == j:
+                continue
+            c = np.cross(points[i], points[j]).reshape((1,3))
+            if np.all(points @ c.T >= 0):
+                return True
+    
+    return False
+
+
 EPSILON = 0.00001
 DENSITY = 50000
 class SupportSphere:
-    def __init__(self, x, maxIter = 100):
+    def __init__(self, x, maxIter = 20):
         self.X = x
         self.Iterations = 0
         self.MaxIter = maxIter
@@ -24,31 +39,31 @@ class SupportSphere:
         self.Iterations += 1
         if self.Iterations >= self.MaxIter:
             return False
-        dr = radius * 0.01
+        dr = radius * 0.05
         distance, index = kd.query(self.X, 10000, distance_upper_bound = radius + 2 * dr)
         distance, index = distance[0], index[0]
         index = index[~np.isinf(distance)]
-        
         distance = distance[~np.isinf(distance)]
-        area = 4 * np.pi * radius**2
+        points = cloud[index]
+
         if len(distance) <= 3:
             return False
-        if len(distance[distance < radius + dr/2])/(DENSITY * area) < 0.15:
-            return False
-        internalPoints = distance < (radius - dr/2)
+
         weights = 1 / (1 + np.exp((distance - radius) / dr))
         mean = np.average(distance, weights= weights)
-        if abs(mean - radius) <= dr / 2:
-            print(mean, mean - radius)
-            return True
-        
-        points = cloud[index]
         dx = self.X - points
         dx = ((dx.T) / np.linalg.norm(dx, axis = 1)).T
-        
+        directionality = np.linalg.norm(np.mean(dx, axis = 0))
+        if directionality > 0.6:
+            return False
+        if abs(mean - radius) <= dr / 2:
+            return True
+
         dx = np.sum((((radius - distance) * dx.T) * weights) / np.sum(weights), axis = 1).T
+
         self.X += dx
         if np.linalg.norm(dx) < EPSILON:
+            print(directionality)
             return False
         return None
 

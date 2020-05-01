@@ -244,7 +244,6 @@ class Mesh(OnDisk):
             ijk = np.unravel_index(i, nBins)
             centers[i] = (np.array(ijk) + 0.5) * binsize + origin
         distances = ProximityQuery(self.trimesh).signed_distance(centers)
-        
         for i in range(distanceField.size):
             ijk = np.unravel_index(i, distanceField.shape)
             distanceField[ijk] = distances[i]
