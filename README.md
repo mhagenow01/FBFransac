@@ -64,6 +64,47 @@ or conda install -c conda-forge point_cloud_utils
 We provide several classes that do stuff!
 #### Core Algorithm
 ##### Medial Axis Matching
+One of the simplest ways to differentiate two objects is their scale. If you can determine the scale of the geometry in the scene, many objects can be quickly ruled out. One way of getting at this idea of localized scale is through the medial axis of the scene. The medial axis is defined as the set of all points that have two or more equidistant scene points. By searching for points on the medial axis of the scene that have the right distance-to-scene value, it is possible to search for locations with an appropriate scale.
+
+At the core of this algorithm is the ability to find medial axis points that have *approximately* the radius we are looking for. While there are a number of algorithms to find medial axis points from a geometry, they are generally highly sensitive to noise in the cloud. The need to *robustly* identify a *single* point on the medial axis that is a certain distance from the scene motivates the following, Mean Shift inspired, novel algorithm:
+
+```
+PROGRAM FindMedialAxisPoint:
+  # Description: Attempts once to find a medial axis 
+    point in the scene with a given radius. 
+  # Inputs: 
+    PointCloud  - The set of 3d points representing the scene
+    Radius      - The target radius
+    dr          - Noise tolerance
+  # Outputs: Position or None
+  Position <= Random-Point-Near-Cloud
+  
+  WHILE iterations < MAX_ITERATIONS 
+        && PositionDelta > EPSILON:
+    neighbors <= Points-within-(Radius + 2dr)-of-Position
+    
+    IF WeightedAverage(DistanceTo(neighbors)) ~= Radius
+      EXIT
+    END
+    idealPositions <= Points-(1*Radius)-Away-from-neighbors
+    Position <= WeightedAverage(idealPositions)
+  END
+  
+  Position <= None
+END
+```
+
+Here we use a modified Woods-Saxon distribution as a weighting function to compute the weighted average. 
+
+<img src="https://render.githubusercontent.com/render/math?math=w_i=\frac{1}{1%2Be^{\frac{d_i-R}{dr}}}">
+
+This ensures that points inside of the target radius are always considered heavily, while maintaining a smooth transition from "relevant points" to "irrelevant points" as they get farther away.
+
+Now that we have an algorithm for finding locations of similar geometric scale, we need to profile each object in our database to determine what we are looking for and how that relates to the object. This is done by simply sweeping out a range of radii of appropriate scale (as determined by the size of the bounding box) and 
+
+TODO
+
+
 ##### Modified Iterative-Closest Point
 When determining the pose of 3D objects from noisy data, it is common to use an Iterative-closest point algorithm 
 as a means of refining an initial estimate of the object pose. We extend the core algorithm in two ke ways to make
