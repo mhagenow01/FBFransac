@@ -16,6 +16,7 @@ class ModelFinder:
     def __init__(self):
         self.Models = []
         self.ModelProfiles = []
+        self.ModelFiles = []
         self.KeyPointGenerators = []
         self.Scene = None
         self.SceneNormals = None
@@ -26,6 +27,7 @@ class ModelFinder:
     def set_meshes(self, meshFiles, resolution):
         for f in meshFiles:
             self.Models.append(Mesh(f, resolution))
+            self.ModelFiles.append(f)
             self.Models[-1].cacheMeshDistance()
             self.ModelProfiles.append(ObjectProfile.fromMeshFile(f))
     
@@ -46,9 +48,9 @@ class ModelFinder:
         instances = []
         #Idk, try a few of these?
         for _ in range(1000):
-            for m, profile in zip(self.Models, self.ModelProfiles):
+            for m, profile, file in zip(self.Models, self.ModelProfiles, self.ModelFiles):
                 r, meshKeyPoints = profile.sampleRadius()
-                print(r)
+                print(_,",",r)
                 ind = np.random.choice(range(len(self.Scene)), replace=True)
                 startPoint = self.Scene[ind] + np.random.randn(3) * 0.001
                 sceneKeyPoint = SupportSphere(startPoint.reshape((1,3)).copy())
@@ -59,7 +61,7 @@ class ModelFinder:
                     pose = self.determinePose(m, meshKeyPoint.X, sceneKeyPoint.X.reshape((1,3)))
                     print(pose)
                     if self.validatePose(m, pose):
-                        instances.append((m, pose))
+                        instances.append((m, pose, file))
         return instances
 
     def determinePose(self, mesh, meshKp, sceneKp):
@@ -101,8 +103,16 @@ class ModelFinder:
 
 
     def ICPrandomRestarts(self,R,o,mesh, meshNormals, meshSizes):
-        number_restarts = 100
+        number_restarts = 10
         best_error = np.inf
+        max_faces = 1000
+
+        # Downsample the faces if necessary
+        if len(mesh)>1000:
+            indices = np.random.choice(len(mesh),1000,replace=False)
+            mesh=mesh[indices,:]
+            meshNormals=meshNormals[indices,:]
+            meshSizes=meshSizes[indices,:]
 
         for ii in range(0,number_restarts):
             R = special_ortho_group.rvs(3) # random restart for R_initial
@@ -113,6 +123,7 @@ class ModelFinder:
             # print(o+o_pert)
 
             R_temp, o_temp, error = self.runICP(R,o+o_pert,mesh,meshNormals, meshSizes)
+            print("ICP ",ii," done")
 
             if error<best_error:
                 best_error = error
@@ -125,8 +136,8 @@ class ModelFinder:
         and find a better pose that aligns the closest points
         '''
         # Parameters for ICP
-        max_iterations = 10 # max iterations for a mesh to preserve performance
-        keep_per = 0.2 # percentage to keep for occlusion-handling
+        max_iterations = 15 # max iterations for a mesh to preserve performance
+        keep_per = 0.8 # percentage to keep for occlusion-handling
         tolerance = 0.001*len(mesh)*keep_per # when to stop ICP -> cumulative error
         distance_threshold = 0.1 # 10 cm away for closest point TODO: make this based on mesh radius?
 
@@ -158,7 +169,7 @@ class ModelFinder:
             # # weights based on distance
             weights = (1.0 - (np.abs(distances[closeEnough])/distance_threshold))
             weights_p1 = (1.0 - (np.abs(distances[closeEnough])/distance_threshold)).reshape((len(s_vals),1))
-            weights_p2 = (meshSizes[closeEnough] / np.max(meshSizes)).reshape((len(s_vals),1))
+            weights_p2 = (1 - (meshSizes[closeEnough] / np.max(meshSizes))).reshape((len(s_vals), 1))
             weights = np.multiply(weights_p1,weights_p2).reshape((len(s_vals),))
             # # weights based on the size of the mesh faces
             # weights = (meshSizes[closeEnough]/np.max(meshSizes)).reshape((len(s_vals),))

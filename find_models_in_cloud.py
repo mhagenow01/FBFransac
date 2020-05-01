@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from ModelFinder import ModelFinder
 import open3d as o3d
 from mpl_toolkits.mplot3d import Axes3D
+from ModelProfile import *
 
 def main():
     ''' Given a cloud and meshes to find this will invoke
@@ -13,24 +14,17 @@ def main():
     The final result is plotted using Open3d 
     '''
 
-    mesh_files = ['Models/hammer.stl']
-    scene = 'Models/Cloud_3_hammers.json'
-    gridResolution = 0.001
+    mesh_files = ['Models/ComparisonSTLs/hammer.stl']
+    scene = 'Models/ComparisonScenes/Cloud_comparison_scene_1.json'
+    gridResolution = 0.01
 
     Verbosifier.enableVerbosity()
 
     with open(scene) as fin:
         noisyCloud = np.array(json.load(fin))
-        noisyCloud = noisyCloud[np.linalg.norm(noisyCloud, axis=1) < 0.5]
 
     finder = ModelFinder()
-    finder.set_resolution(gridResolution)
-
-    meshes = []
-    for mesh_file_temp in mesh_files:
-        mesh_temp = Mesh(mesh_file_temp, gridResolution)
-        meshes.append(mesh_temp)
-    finder.set_meshes(meshes)
+    finder.set_meshes(mesh_files, gridResolution)
     finder.set_scene(noisyCloud)
     instances = finder.findInstances()
 
@@ -44,9 +38,9 @@ def main():
     plotting_objects.append(pcd)
 
     # Add in all the found meshes
-    for m, pose in instances:
+    for m, pose, file in instances:
         # TODO: add a way to get the model file from the found instances
-        mesh = o3d.io.read_triangle_mesh("Models/ToyScrew-Yellow.stl")
+        mesh = o3d.io.read_triangle_mesh(file)
         mesh.rotate(pose[0],center=False) #TODO: check this once all (R,o) stuff is figured out
         mesh.translate(pose[1].reshape((3,))) #TODO: check this once all (R,o) stuff is figured out
         plotting_objects.append(mesh)
