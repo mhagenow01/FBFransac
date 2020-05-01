@@ -14,7 +14,7 @@ def main():
     The final result is plotted using Open3d 
     '''
 
-    mesh_files = ['Models/ComparisonSTLs/hammer.stl']
+    mesh_files = ['Models/ComparisonSTLs/hammer.stl', 'Models/ComparisonSTLs/pliers.stl']
     scene = 'Models/ComparisonScenes/Cloud_comparison_scene_1.json'
     gridResolution = 0.002
 

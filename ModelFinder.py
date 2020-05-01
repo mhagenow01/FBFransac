@@ -11,6 +11,7 @@ import random
 from ModelProfile import *
 import pickle
 import os
+import gimpact
 
 DENSITY = 500000 / 7
 
@@ -23,7 +24,7 @@ class ModelFinder:
         self.Scene = None
         self.SceneNormals = None
         self.SceneKd = None
-        self.MaxDistanceError = 0.001
+        self.MaxDistanceError = 0.003
 
     @verbose()
     def set_meshes(self, meshFiles, resolution):
@@ -59,11 +60,27 @@ class ModelFinder:
                 if sceneKeyPoint.iterate(self.Scene, self.SceneKd, r):
                     # TODO: Allow for potentially multiple keypoints per mesh?
                     meshKeyPoint = meshKeyPoints[np.random.choice(range(len(meshKeyPoints)))]
-                    pose = self.determinePose(m, meshKeyPoint.X, sceneKeyPoint.X.reshape((1,3)))
-                    print(pose)
-                    if self.validatePose(m, pose):
-                        instances.append((m, pose, file))
-        return instances
+                    *pose, error = self.determinePose(m, meshKeyPoint.X, sceneKeyPoint.X.reshape((1,3)))
+                    print(error)
+                    valid, score =  self.validatePose(m, pose, error)
+                    if valid:
+                        self.addInstance(instances, m, pose, file, score)
+        return [i[2:] for i in instances]
+
+    @staticmethod
+    def addInstance(instances, mesh, pose, file, score):
+        g_mesh = gimpact.TriMesh(mesh.trimesh.vertices @ pose[0].T + pose[1], mesh.trimesh.faces.flatten())
+
+        toRemove = set()
+        for i in reversed(range(len(instances))):
+            if gimpact.trimesh_trimesh_collision(g_mesh, instances[i][0], True):
+                if instances[i][1] > score:
+                    return
+                else:
+                    toRemove.add(i)
+        for i in toRemove:
+            instances.pop(i)
+        instances.append((g_mesh, score, mesh, pose, file))
 
     def determinePose(self, mesh, meshKp, sceneKp):
         ''' Given a mesh and a correspondence between a point in mesh space and
@@ -71,14 +88,14 @@ class ModelFinder:
         '''
         R = np.eye(3)
         o = sceneKp
-        meshFaces = mesh.Faces# - meshKp
+        meshFaces = mesh.Faces - meshKp
         R, o, error = self.ICPrandomRestarts(R, o, meshFaces, mesh.Normals, mesh.Sizes)
         if R is None or o is None:
             return None, None
 
-        return R, o# - meshKp @ R.T
+        return R, o - meshKp @ R.T, error
 
-    def validatePose(self, mesh : Mesh, pose):
+    def validatePose(self, mesh : Mesh, pose, error):
         ''' Given a mesh, pose, and representation of the scene (self.SceneKd), figure out how
             good the pose is at describing the scene.
 
@@ -86,25 +103,26 @@ class ModelFinder:
         '''
         R, o = pose
         if R is None or o is None:
-            return False
-        nearbyDistances, nearbyPoints_ind = self.SceneKd.query(o.reshape((1,3)), k = 10000, distance_upper_bound = mesh.Radius)
+            return False, None
+        return error < self.MaxDistanceError, -error
+        nearbyDistances, nearbyPoints_ind = self.SceneKd.query(o.reshape((1,3)), k = 10000, distance_upper_bound = 2*mesh.Radius)
         nearbyPoints_ind = np.array(nearbyPoints_ind)
         nearbyPoints = self.Scene[nearbyPoints_ind[nearbyPoints_ind < len(self.Scene)]]
         maxPoints = DENSITY * mesh.SurfaceArea
         if len(nearbyPoints) < 0.5 * maxPoints:
-            return False
+            return False, None
 
         nearbyPoints = (nearbyPoints - o) @ R
         distanceToMesh = mesh.distanceQuery(nearbyPoints)
-        outliers = np.sum(distanceToMesh > self.MaxDistanceError)
-        inliers = np.sum(np.abs(distanceToMesh) <= self.MaxDistanceError)
+        outliers = np.sum(distanceToMesh > error)
+        inliers = np.sum(np.abs(distanceToMesh) <= error)
         # print(outliers, inliers)
         print(maxPoints, outliers, inliers)
-        return inliers / maxPoints > 0.2# and outliers / maxPoints < 0.1
+        return inliers / maxPoints > 0.2, inliers / maxPoints
         if outliers > 0:
-            return False
+            return False, None
         if inliers < 60:
-            return False
+            return False, None
         return True
 
 
@@ -142,9 +160,9 @@ class ModelFinder:
         and find a better pose that aligns the closest points
         '''
         # Parameters for ICP
-        max_iterations = 15 # max iterations for a mesh to preserve performance
+        max_iterations = 30 # max iterations for a mesh to preserve performance
         keep_per = 0.8 # percentage to keep for occlusion-handling
-        tolerance = 0.001*len(mesh)*keep_per # when to stop ICP -> cumulative error
+        tolerance = 0.001 # when to stop ICP -> cumulative error
         distance_threshold = 0.1 # 10 cm away for closest point TODO: make this based on mesh radius?
 
         # starting value for exit conditions
@@ -227,7 +245,7 @@ class ModelFinder:
             distances_temp, closest_indices_temp = self.SceneKd.query(face_points_temp, 1)
             ind_trunc = np.argsort(distances_temp)[0:int(keep_per*len(distances_temp))]
             closest_points_temp = self.Scene[closest_indices_temp][ind_trunc]
-            error = np.sum(np.linalg.norm(closest_points_temp-face_points_temp[ind_trunc],axis=1))
+            error = np.max(np.linalg.norm(closest_points_temp-face_points_temp[ind_trunc],axis=1))
             # print("ERROR ", error)
             number_iterations += 1
 
