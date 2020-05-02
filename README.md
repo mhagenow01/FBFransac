@@ -120,7 +120,7 @@ for the matching related to the size of the faces. In order to combat this, we i
 that punishes large mesh faces in the fitting. Our weighting function also considers distance between the matching points
 as is a common choice in weighting functions. Our final weighting functions combines these two ideas and can be computed as:
 
-<img src="https://render.githubusercontent.com/render/math?math=w_i=(1-\frac{d_i}{d_t})(\frac{A_i}{max_j(A_j)})" style="display: block; margin-left: auto;">
+<div align="center"><img src="https://render.githubusercontent.com/render/math?math=w_i=(1-\frac{d_i}{d_t})(\frac{A_i}{max_j(A_j)})"></div>
 
 where <img src="https://render.githubusercontent.com/render/math?math=d_i"> is the distance between the face and the closest point in the point cloud, 
 <img src="https://render.githubusercontent.com/render/math?math=d_t"> is the maximum distance considered
@@ -153,11 +153,12 @@ The medial-axis part of our algorithm can still identify geometry under large pe
 sections of the mesh are still visible.
 To test our ICP algorithm against occlusions, we artificially remove sections of a screw model and use
 ICP to recognize the pose. As a reminder, our algorithm is designed to still function seamlessly for less than 20 percent occlusion. In testing, we have found that our algorithm is robust to small amounts of occlusions (<30%).
-Below, we show one example of Occlusion testing against a model of a screw. At around 50 percent occlusion, the mesh fit starts to have notable error. At this point, the principal
+Below, we show one example of Occlusion testing against a model of a screw. In this figure, blue points are the point cloud points used for fitting and the green points are an outline of the fit mesh. At around 50 percent occlusion, the mesh fit starts to have notable error. At this point, the principal
 axis of the remaining points of the screw starts to align with the mesh principal axis. This is expected behavior for an ICP-type algorithm.
 At approximately 80 percent, the mesh fit is incorrect. More discussion about occlusions can be found below in the future work.
 
 ![occlusion testing](https://mhagenow01.github.io/FBFransac/images/percent_occlusion_ICP.png "Occlusion Testing")
+<div align="center"> Figure XYZ: ICP Occlusion testing for the Toy Screw model from the side angle </div>
 
 ### Issues/Limitations
 
