@@ -170,8 +170,12 @@ the algorithm can be improved as far as reliability. In particular, our method h
 
 ADD MORE DISCUSSION.
 
+ADD NOTES ON PERFORMANCE!
+
 #### Recognition with Point Cloud Noise
 Recognition under noise
+
+Maybe use the example scene that works well and keep adding noise until it doesn't work?
 
 #### Recognition under Occlusion
 The medial-axis part of our algorithm can still identify geometry under large percentages of occlusion, provided that convex 
@@ -218,7 +222,12 @@ PointNet++ is a state of the art neural-network based approach for object recogn
 
 Note: The implementation used for the comparison can be found here: https://github.com/charlesq34/pointnet2. This implementation requires Tensorflow and NVIDIA CUDA Drivers. We were able to build the package using CUDA 9.0 and TensorFlow something. As a neural-net approach, the system required training. We trained using the model40.
 
-#### Future Work
+PointNet++ is designed as a classifier, meaning for an input point cloud of a single object, it will return a classification from the labels
+used during training. Thus, a direct comparison similar to above is not possible. Instead, we focus on a comparison where we 
+use FAMrec as a classifier for a representative set of objects from the same classes that the PointNet++ model was built upon.
+We train PointNet++ using the ModelNet40 database from Princeton [xyz] (https://modelnet.cs.princeton.edu/)
+
+#### Conclusions and Future Work
 Greater robustness to noise, occlusions, further testing on situations
 Based on error, tell the robot to adjust its view for a better recognition?
 
@@ -227,3 +236,4 @@ Based on error, tell the robot to adjust its view for a better recognition?
 [1] P. Liu, Y. Wang, D. Huang and Z. Zhang, "Recognizing Occluded 3D Faces Using an Efficient ICP Variant," 2012 IEEE International Conference on Multimedia and Expo, Melbourne, VIC, 2012, pp. 350-355.  
 [1] Chavdar   Papazov,   Sami   Haddadin,   Sven   Parusel,   Kai   Krieger,   and   Darius   Burschka.Rigid3d   geometry   matching   for   grasping   of   known   objects   in   cluttered   scenes.The InternationalJournal  of  Robotics  Research,   31(4):538–553,   2012.doi:10.1177/0278364911436019.URLhttps://doi.org/10.1177/0278364911436019.  
 [2] Charles R. Qi, Li Yi, Hao Su, and Leonidas J. Guibas. Pointnet++: Deep hierarchical feature learning onpoint sets in a metric space.  InProceedings of the 31st International Conference on Neural InformationProcessing Systems, NIPS’17, page 5105–5114, Red Hook, NY, USA, 2017. Curran Associates Inc. ISBN9781510860964
+[xyz] Z. Wu, S. Song, A. Khosla, F. Yu, L. Zhang, X. Tang and J. Xiao. 3D ShapeNets: A Deep Representation for Volumetric Shapes. Proceedings of 28th IEEE Conference on Computer Vision and Pattern Recognition (CVPR2015)
