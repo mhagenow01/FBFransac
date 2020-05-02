@@ -61,6 +61,7 @@ def main(name,n):
 
 
     # Save as both a ply and a JSON
+    pointCloud.to_file(output_file.split('.')[0] + '.ply')
     output_file = output_file.split('.')[0] + '.json'
     lst = cloud.tolist()
     with open(output_file, 'w') as outfile:
