@@ -1,7 +1,8 @@
 ## Overview
 We present an implementation of our medial-axis and face-based 3D Pose Recognition Algorithm. This algorithm takes
-a library of meshes and fits the poses in a provided single point cloud. Our implementation is meant to be used in an online
-method, meaning there is an emphasis on performance.
+a library of meshes and fits the poses in a provided single point cloud. Our implementation is meant to be used as
+part of an interactive robot authoring program for manufacturing, meaning there is an emphasis on both performance
+and reliability. 
 
 ![implementation teaser](https://mhagenow01.github.io/FBFransac/images/solution_teaser.png "Implementation Teaser")
 
@@ -15,34 +16,28 @@ Notably, as much of the development involves composites and lightweight metals, 
 differentiation in the environment.
 
 When originally searching for a method for our application, we were unable to find a reliable
-method that could identify objects in our prototype environment. 
-
-![robot and camera setup](https://mhagenow01.github.io/FBFransac/images/nasa_uli_setup.JPG "Robot and Camera Setup")
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-CODE CODE CODE
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+method that could identify objects in our prototype environment, which inspired us to try to create
+a method. More detail is available in our original proposal ADD LINK.
 
 ### Approach
-Existing approaches to arbitrary mesh recognition either use a neural-net or RANSAC based kernel. In our work, we
-have developed a method that uses the medial axis to determine hypothesis mesh keypoints and a modified version of
-Iterative-closest point (ICP) to determine a more precise mesh pose. In our approach, we try our best to avoid
-random sampling and to always rely on geometric features for everything.
+Existing approaches to arbitrary mesh recognition often use either a neural-net or RANSAC-based kernel. In our work, we
+have developed a method that uses the medial axis of the mesh to determine hypothesis mesh keypoints and a modified version of
+Iterative-closest point (ICP) to determine a more precise mesh pose. In our approach, we tried to use geometric features
+wherever possible.
 
-### Implementation
+In developing this approach, we built multiple other implementations. First, we developed an Efficient RANSAC program that
+could identify spheres and cylinders. We then created our first algorithm Face-Based-Features RANSAC (FBF ransac) which was 
+a RANSAC-based kernel that used face to point correspondence instead of point to point typical of other RANSAC methods. Both of
+these implementations are also in github, but are not discussed further. More detail on these can be found in our Midterm report (LINK).
+
+### Implementation (FAMrec)
 #### Required Packages
-We provide a full package python package for our implementation. This was tested using python 3.6.
+We provide a full package python package for our implementation. This was tested using python 3.6. One of our goals
+was to create as compact and simple of code as possible to promote longevity. Our code is not yet optimized for performance.
 
-TODO: make this right
+Required Packages: numpy,trimesh,point_cloud_utils,pykdtree,pyntcloud
 
-required packages: numpy,trimesh,point_cloud_utils,pykdtree,pyntcloud
-
-package install directions:
-
+Suggested package install directions:
 ```
 pip3 install numpy
 pip3 install rtree
@@ -56,12 +51,14 @@ pip install open3d
 or conda install -c conda-forge point_cloud_utils
 ```
 
-
-
-
-
 #### Data Structure
-We provide several classes that do stuff!
+For FAMrec there are a few main classes that build up the method:
+* find_models_in_cloud:
+* ModelFinder:
+* Mesh:
+* ModelProfile:
+Additionally, the EfficientRANSAC and FBFRansac folders have their own classes and scripts found in separate folders. There is also a utilities folder that
+provides several scripts for converting file formats, etc.
 #### Core Algorithm
 ##### Medial Axis Matching
 One of the simplest ways to differentiate two objects is their scale. If you can determine the scale of the geometry in the scene, many objects can be quickly ruled out. One way of getting at this idea of localized scale is through the medial axis of the scene. The medial axis is defined as the set of all points that have two or more equidistant scene points. By searching for points on the medial axis of the scene that have the right distance-to-scene value, it is possible to search for locations with an appropriate scale.
@@ -225,7 +222,12 @@ Note: The implementation used for the comparison can be found here: https://gith
 PointNet++ is designed as a classifier, meaning for an input point cloud of a single object, it will return a classification from the labels
 used during training. Thus, a direct comparison similar to above is not possible. Instead, we focus on a comparison where we 
 use FAMrec as a classifier for a representative set of objects from the same classes that the PointNet++ model was built upon.
-We train PointNet++ using the ModelNet40 database from Princeton [xyz] (https://modelnet.cs.princeton.edu/)
+We train PointNet++ using the ModelNet40 database from Princeton [xyz] (https://modelnet.cs.princeton.edu/). From the test set of ModelNet40, we
+extract 30 representative meshes (We were unable to convert 10 of the classes to a format that works with our mesh importing system). For each of these 30 objects,
+we load them 5 times with random orientations in PointNet++ and get the classification. We also load them 5 times with random orientations into FAMrec and
+get what object is recognized (Note: FAMrec might return no object or possibly multiple - it is not a classifier). This gives us a biased, but reasonable
+metric to compare the methods. Table has the classification results:
+
 
 #### Conclusions and Future Work
 Greater robustness to noise, occlusions, further testing on situations
