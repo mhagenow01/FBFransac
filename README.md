@@ -95,9 +95,11 @@ Here we use a modified Woods-Saxon distribution as a weighting function to compu
 
 <div align="center"><img src="https://render.githubusercontent.com/render/math?math=w_i=\frac{1}{1%2Be^{\frac{d_i-R}{dr}}}"></div>
 
-This ensures that points inside of the target radius are always considered heavily, while maintaining a smooth transition from "relevant points" to "irrelevant points" as they get farther away.
+This ensures that points inside of the target radius are always considered heavily, while maintaining a smooth transition from "relevant points" to "irrelevant points" as they get farther away, which allows for consistent convergence.
 
-Now that we have an algorithm for finding locations of similar geometric scale, we need to profile each object in our database to determine what we are looking for and how that relates to the object. This is done by simply sweeping out a range of radii of appropriate scale (as determined by the size of the bounding box) and 
+Now that we have an algorithm for finding locations of similar geometric scale, we need to profile each object in our database to determine what we are looking for and how that relates to the object. This is done by simply sweeping out a range of radii of appropriate scale (as determined by the size of the bounding box) and looking for medial axis points at that scale. When profiling an object, we use a thickness (dr) equal to 2% of the target radius. 
+
+Once we have generated profiles for our objects, we iteratively sample...
 
 TODO
 
