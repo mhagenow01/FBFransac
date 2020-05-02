@@ -156,13 +156,13 @@ and comparison is found below.**
 
 | Object          | True Positive | Misfit True Positive | False Negative | True Negative | False Positive |
 |-----------------|---------------|----------------------|----------------|---------------|----------------|
-| Hammer          | 0            | 21                   | 5              | 6             | 61             |
-| Pliers          | 0            | 0                    | 0              | 10            | 57             |
-| Saw             | 0            | 27                   | 2              | 10            | 50             |
-| Screw           | 0             | 0                    | 45             | 60            | 0              |
-| Screwdriver     | 0             | 0                    | 28             | 35            | 41             |
-| Spanning Wrench | 0             | 0                    | 28             | 31            | 46             |
-| Wrench          | 0             | 29                   | 9              | 14            | 49             |
+| Hammer          | 24            | 0                    | 19             | 53            | 9              |
+| Pliers          | 10            | 0                    | 26             | 45            | 28             |
+| Saw             | 13            | 1                    | 24             | 51            | 16             |
+| Screw           | 7             | 5                    | 30             | 60            | 0              |
+| Screwdriver     | 10            | 1                    | 32             | 58            | 4              |
+| Spanning Wrench | 10            | 0                    | 27             | 49            | 19             |
+| Wrench          | 4             | 3                    | 19             | 23            | 83             |
 
 We find that our system is able to recognize objects across a variety of shapes and sizes, though we still believe
 the algorithm can be improved as far as reliability. In particular, our method had a challenge with the wrench model.
