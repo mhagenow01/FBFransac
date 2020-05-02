@@ -96,7 +96,7 @@ END
 
 Here we use a modified Woods-Saxon distribution as a weighting function to compute the weighted average. 
 
-<img src="https://render.githubusercontent.com/render/math?math=w_i=\frac{1}{1%2Be^{\frac{d_i-R}{dr}}}">
+<div align="center"><img src="https://render.githubusercontent.com/render/math?math=w_i=\frac{1}{1%2Be^{\frac{d_i-R}{dr}}}"></div>
 
 This ensures that points inside of the target radius are always considered heavily, while maintaining a smooth transition from "relevant points" to "irrelevant points" as they get farther away.
 
