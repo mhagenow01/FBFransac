@@ -107,10 +107,12 @@ TODO
 
 ##### Modified Iterative-Closest Point
 When determining the pose of 3D objects from noisy data, it is common to use an Iterative-closest point algorithm 
-as a means of refining an initial estimate of the object pose. We extend the core algorithm in two ke ways to make
+as a means of refining an initial estimate of the object pose. We extend the core algorithm in two key ways to make
 it amenable to our object recognition formulation.
 
-ICP reminder
+As a breif reminder, the premise of ICP is to complete an optimal rotation and translation in order
+to align two sets of points. The sets of points are constructed by finding the closest corresponding
+points between the sets. The optimal translation and rotation can be solved as a linear system using SVD.
 
 First, we define a custom weighting function cognizant of our face-matching based approach
 to recognition. The core ICP algorithm is designed to compute the optimal rotation and
@@ -143,7 +145,30 @@ it will need to run the mesh pre-processing which can take 1-2 minutes.
 
 ### Results
 #### General results
-7 choose 3 results and a discussion.
+We chose to evaluate our method by testing it on a new set of meshes. We use the freely available Toy Toolkit from free3D (https://free3d.com/3d-model/toy-tool-kit-982573.html).
+This set is comprised of seven meshes: hammer, pliers, saw, screw, screwdriver, spanning wrench, and wrench.
+
+We created 3 random scenes that contain all seven objects with randomized poses. Each example scene is a point cloud consisting
+of 100,000 points. We perform a combinatorial (e.g., 7 choose 3) analysis for each of the scenes and report the confusion matrix
+results. We added an additional category to the standard confusion matrix  for 'Misfit True Positive' which is when
+the correct model is selected, but the pose is incorrect (more common of competing methods). The results are reported in 
+Table xyz. ** Note: While the results may seem to be a low percentage, it is on part with existing methods (e.g., ObjRecRANSAC). More detail
+and comparison is found below.**
+
+| Object          | True Positive | Misfit True Positive | False Negative | True Negative | False Positive |
+|-----------------|---------------|----------------------|----------------|---------------|----------------|
+| Hammer          | 0            | 21                   | 5              | 6             | 61             |
+| Pliers          | 0            | 0                    | 0              | 10            | 57             |
+| Saw             | 0            | 27                   | 2              | 10            | 50             |
+| Screw           | 0             | 0                    | 45             | 60            | 0              |
+| Screwdriver     | 0             | 0                    | 28             | 35            | 41             |
+| Spanning Wrench | 0             | 0                    | 28             | 31            | 46             |
+| Wrench          | 0             | 29                   | 9              | 14            | 49             |
+
+We find that our system is able to recognize objects across a variety of shapes and sizes, though we still believe
+the algorithm can be improved as far as reliability. In particular, our method had a challenge with the wrench model.
+
+ADD MORE DISCUSSION.
 
 #### Recognition with Point Cloud Noise
 Recognition under noise
@@ -175,6 +200,18 @@ Note: The implementation used for the comparison can be found here: https://gith
 
 Both ObjRecRANSAC and our method take a set of meshes (e.g., stl) and find instances in a provided 3D point cloud. As such, it was relatively straight forward
 to run a comparison. We created 25 example scenes to test the algorithms. These include 1-3 objects in various configurations as well as some false-positive meshes. 
+
+
+| Object          | True Positive | Misfit True Positive | False Negative | True Negative | False Positive |
+|-----------------|---------------|----------------------|----------------|---------------|----------------|
+| Hammer          | 13            | 21                   | 5              | 6             | 61             |
+| Pliers          | 38            | 0                    | 0              | 10            | 57             |
+| Saw             | 16            | 27                   | 2              | 10            | 50             |
+| Screw           | 0             | 0                    | 45             | 60            | 0              |
+| Screwdriver     | 4             | 0                    | 28             | 35            | 41             |
+| Spanning Wrench | 0             | 0                    | 28             | 31            | 46             |
+| Wrench          | 4             | 29                   | 9              | 14            | 49             |
+
 
 #### PointNet++
 PointNet++ is a state of the art neural-network based approach for object recognition. The algorithm was proposed in Qi et al. [2] in 2017. Using a variety of custom pre-processing layers and tensorflow, this approach is trained to recognize objects and their specific classification.
