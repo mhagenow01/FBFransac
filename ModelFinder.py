@@ -93,7 +93,7 @@ class ModelFinder:
         R = np.eye(3)
         o = sceneKp
         meshFaces = mesh.Faces - meshKp
-        R, o, error = self.ICPrandomRestarts(R, o, meshFaces, mesh.Normals, mesh.Sizes)
+        R, o, error = self.ICPrandomRestarts(R, o, meshFaces, mesh.Normals, mesh.Sizes, mesh.Radius)
         if R is None or o is None:
             return None, None
 
@@ -129,7 +129,7 @@ class ModelFinder:
         return True
 
 
-    def ICPrandomRestarts(self,R,o,mesh, meshNormals, meshSizes):
+    def ICPrandomRestarts(self,R,o,mesh, meshNormals, meshSizes, meshRadius):
         number_restarts = 10
         best_error = np.inf
         max_faces = 100
@@ -144,10 +144,9 @@ class ModelFinder:
         for ii in range(0,number_restarts):
             R = special_ortho_group.rvs(3) # random restart for R_initial
 
-            o_pert = 0.00*np.array([random.random()-0.5, random.random()-0.5,random.random()-0.5]).reshape((1,3))
-            # print(o)
-            # print(o_pert)
-            # print(o+o_pert)
+            # Shift the mean after rotation and possibly with some additional small perturbation
+            o_pert = np.mean((R @ mesh.T).T - np.mean(mesh, axis=0)) + 0.00 * np.array(
+                [random.random() - 0.5, random.random() - 0.5, random.random() - 0.5]).reshape((1, 3))
 
             R_temp, o_temp, error = self.runICP(R,o+o_pert,mesh,meshNormals, meshSizes)
 
@@ -157,7 +156,7 @@ class ModelFinder:
 
         return best_R, best_o, best_error
 
-    def runICP(self, R, o, mesh, meshNormals, meshSizes):
+    def runICP(self, R, o, mesh, meshNormals, meshSizes, meshRadius):
         ''' Given a current pose (R,  o) for a mesh, use ICP to iterate
         and find a better pose that aligns the closest points
         '''
@@ -165,7 +164,7 @@ class ModelFinder:
         max_iterations = 30 # max iterations for a mesh to preserve performance
         keep_per = 0.8 # percentage to keep for occlusion-handling
         tolerance = 0.001 # when to stop ICP -> cumulative error
-        distance_threshold = 0.1 # 10 cm away for closest point TODO: make this based on mesh radius?
+        distance_threshold = 2*meshRadius
 
         # starting value for exit conditions
         number_iterations = 0
@@ -193,7 +192,7 @@ class ModelFinder:
             # weights = np.ones((len(s_vals),))
 
             # # weights based on distance
-            weights = (1.0 - (np.abs(distances[closeEnough])/distance_threshold))
+            # weights = (1.0 - (np.abs(distances[closeEnough])/distance_threshold))
             weights_p1 = (1.0 - (np.abs(distances[closeEnough])/distance_threshold)).reshape((len(s_vals),1))
             weights_p2 = (1 - (meshSizes[closeEnough] / np.max(meshSizes))).reshape((len(s_vals), 1))
             weights = np.multiply(weights_p1,weights_p2).reshape((len(s_vals),))

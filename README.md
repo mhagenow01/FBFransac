@@ -31,7 +31,9 @@ package install directions:
 
 `pip3 install progressbar`
 
-`pip install open3d`
+`pip3 install open3d`
+
+`pip3 install gimpact`
 
 or `conda install -c conda-forge point_cloud_utils`
 

@@ -40,10 +40,9 @@ def main():
 
     # Add in all the found meshes
     for m, pose, file in instances:
-        # TODO: add a way to get the model file from the found instances
         mesh = o3d.io.read_triangle_mesh(file)
-        mesh.rotate(pose[0],center=False) #TODO: check this once all (R,o) stuff is figured out
-        mesh.translate(pose[1].reshape((3,))) #TODO: check this once all (R,o) stuff is figured out
+        mesh.rotate(pose[0],center=False)
+        mesh.translate(pose[1].reshape((3,)))
         plotting_objects.append(mesh)
 
     o3d.visualization.draw_geometries(plotting_objects)
