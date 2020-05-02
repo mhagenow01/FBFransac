@@ -142,16 +142,20 @@ mesh instances in the point cloud and display results using Open3D. Note: The fi
 it will need to run the mesh pre-processing which can take 1-2 minutes.
 
 ### Results
-Basic recognition - Unit testing results
-#### General results and General Performance
+#### General results
+7 choose 3 results and a discussion.
+
+#### Recognition with Point Cloud Noise
 Recognition under noise
-Recognition under occlusion
+
 #### Recognition under Occlusion
-TODO: kevin - does medial axis get effected by occlusions
+The medial-axis part of our algorithm can still identify geometry under large percentages of occlusion, provided that convex 
+sections of the mesh are still visible.
 To test our ICP algorithm against occlusions, we artificially remove sections of a screw model and use
-ICP to recognize the pose. In general, we have found that our algorithm is robust to small amounts of occlusions (<30%).
-Below, we show one example of Occlusion testing. At around 50 percent occlusion, the mesh fit starts to have notable error.
-At approximately 80 percent, the mesh fit is incorrect.
+ICP to recognize the pose. As a reminder, our algorithm is designed to still function seamlessly for less than 20 percent occlusion. In testing, we have found that our algorithm is robust to small amounts of occlusions (<30%).
+Below, we show one example of Occlusion testing against a model of a screw. At around 50 percent occlusion, the mesh fit starts to have notable error. At this point, the principal
+axis of the remaining points of the screw starts to align with the mesh principal axis. This is expected behavior for an ICP-type algorithm.
+At approximately 80 percent, the mesh fit is incorrect. More discussion about occlusions can be found below in the future work.
 
 ![occlusion testing](https://mhagenow01.github.io/FBFransac/images/percent_occlusion_ICP.png "Occlusion Testing")
 
@@ -160,6 +164,9 @@ At approximately 80 percent, the mesh fit is incorrect.
 
 ### Comparisons
 We compare our method with two state of the art open-source algorithms: ObjRecRansac and PointNet++. Details of the implementations and the comparisons follow:
+
+#### Efficient RANSAC
+
 #### ObjRecRANSAC
 ObjRecRANSAC is a RANSAC-kernel based method that uses random sampling to identify geometry in the environment. The original algorithm was proposed by Papazov et al. [1] in 2011. The key idea is to identify key sets of points that can be used for recognition as part of a RANSAC algorithm.
 
