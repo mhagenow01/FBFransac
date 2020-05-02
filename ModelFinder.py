@@ -12,6 +12,7 @@ from ModelProfile import *
 import pickle
 import os
 import gimpact
+from progress.bar import Bar
 
 DENSITY = 500000 / 7
 
@@ -27,7 +28,7 @@ class ModelFinder:
         self.MaxDistanceError = 0.003
 
     @verbose()
-    def set_meshes(self, meshFiles, resolution):
+    def set_meshes(self, meshFiles, resolution = None):
         for f in meshFiles:
             self.Models.append(Mesh(f, resolution))
             self.ModelFiles.append(f)
@@ -50,21 +51,24 @@ class ModelFinder:
         '''
         instances = []
         #Idk, try a few of these?
-        for _ in range(1000):
-            for m, profile, file in zip(self.Models, self.ModelProfiles, self.ModelFiles):
-                r, meshKeyPoints = profile.sampleRadius()
-                ind = np.random.choice(range(len(self.Scene)), replace=True)
-                startPoint = self.Scene[ind] + np.random.randn(3) * 0.001
-                sceneKeyPoint = SupportSphere(startPoint.reshape((1,3)).copy())
+        
 
-                if sceneKeyPoint.iterate(self.Scene, self.SceneKd, r):
-                    # TODO: Allow for potentially multiple keypoints per mesh?
-                    meshKeyPoint = meshKeyPoints[np.random.choice(range(len(meshKeyPoints)))]
-                    *pose, error = self.determinePose(m, meshKeyPoint.X, sceneKeyPoint.X.reshape((1,3)))
-                    print(error)
-                    valid, score =  self.validatePose(m, pose, error)
-                    if valid:
-                        self.addInstance(instances, m, pose, file, score)
+        with Bar('', max = 1000) as bar:
+            for _ in range(1000):
+                for m, profile, file in zip(self.Models, self.ModelProfiles, self.ModelFiles):
+                    r, meshKeyPoints = profile.sampleRadius()
+                    ind = np.random.choice(range(len(self.Scene)), replace=True)
+                    startPoint = self.Scene[ind] + np.random.randn(3) * 0.001
+                    sceneKeyPoint = SupportSphere(startPoint.reshape((1,3)).copy())
+
+                    if sceneKeyPoint.iterate(self.Scene, self.SceneKd, r):
+                        # TODO: Allow for potentially multiple keypoints per mesh?
+                        meshKeyPoint = meshKeyPoints[np.random.choice(range(len(meshKeyPoints)))]
+                        *pose, error = self.determinePose(m, meshKeyPoint.X, sceneKeyPoint.X.reshape((1,3)))
+                        valid, score =  self.validatePose(m, pose, error)
+                        if valid:
+                            self.addInstance(instances, m, pose, file, score)
+                bar.next()
         return [i[2:] for i in instances]
 
     @staticmethod
@@ -78,7 +82,7 @@ class ModelFinder:
                     return
                 else:
                     toRemove.add(i)
-        for i in toRemove:
+        for i in sorted(list(toRemove), reverse=True):
             instances.pop(i)
         instances.append((g_mesh, score, mesh, pose, file))
 
@@ -105,11 +109,11 @@ class ModelFinder:
         if R is None or o is None:
             return False, None
         return error < self.MaxDistanceError, -error
-        nearbyDistances, nearbyPoints_ind = self.SceneKd.query(o.reshape((1,3)), k = 10000, distance_upper_bound = 2*mesh.Radius)
+        nearbyDistances, nearbyPoints_ind = self.SceneKd.query(o.reshape((1,3)), k = 10000, distance_upper_bound = mesh.Radius)
         nearbyPoints_ind = np.array(nearbyPoints_ind)
         nearbyPoints = self.Scene[nearbyPoints_ind[nearbyPoints_ind < len(self.Scene)]]
         maxPoints = DENSITY * mesh.SurfaceArea
-        if len(nearbyPoints) < 0.5 * maxPoints:
+        if len(nearbyPoints) < 0.3 * maxPoints:
             return False, None
 
         nearbyPoints = (nearbyPoints - o) @ R
@@ -117,7 +121,6 @@ class ModelFinder:
         outliers = np.sum(distanceToMesh > error)
         inliers = np.sum(np.abs(distanceToMesh) <= error)
         # print(outliers, inliers)
-        print(maxPoints, outliers, inliers)
         return inliers / maxPoints > 0.2, inliers / maxPoints
         if outliers > 0:
             return False, None
@@ -147,7 +150,6 @@ class ModelFinder:
             # print(o+o_pert)
 
             R_temp, o_temp, error = self.runICP(R,o+o_pert,mesh,meshNormals, meshSizes)
-            print("ICP ",ii," done")
 
             if error<best_error:
                 best_error = error
@@ -245,7 +247,7 @@ class ModelFinder:
             distances_temp, closest_indices_temp = self.SceneKd.query(face_points_temp, 1)
             ind_trunc = np.argsort(distances_temp)[0:int(keep_per*len(distances_temp))]
             closest_points_temp = self.Scene[closest_indices_temp][ind_trunc]
-            error = np.max(np.linalg.norm(closest_points_temp-face_points_temp[ind_trunc],axis=1))
+            error = np.max(np.abs(np.sum((closest_points_temp-face_points_temp[ind_trunc]) * (meshNormals[ind_trunc] @ R.T), axis = 1)))
             # print("ERROR ", error)
             number_iterations += 1
 

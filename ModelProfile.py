@@ -11,6 +11,8 @@ import sys
 import os
 import glob
 from PointCloudFromMesh import surfaceArea, pointCloudFromMesh
+from cProfile import Profile
+from pstats import Stats
 
 def sameHemisphere(points):
     for p in points:
@@ -39,7 +41,7 @@ class SupportSphere:
         self.Iterations += 1
         if self.Iterations >= self.MaxIter:
             return False
-        dr = radius * 0.05
+        dr = radius * 0.02
         distance, index = kd.query(self.X, 10000, distance_upper_bound = radius + 2 * dr)
         distance, index = distance[0], index[0]
         index = index[~np.isinf(distance)]
@@ -111,16 +113,24 @@ class ObjectProfile:
     @staticmethod
     def fromMeshFile(file):
         path, name = os.path.split(file)
-        with open(os.path.join('ObjectProfiles', name), 'rb') as fin:
-            return pickle.load(fin)
-
+        try:
+            with open(os.path.join('ObjectProfiles', name), 'rb') as fin:
+                return pickle.load(fin)
+        except:
+            print(f'No profile found for \'{name}\', run python ModelProfile.py to compile the ObjectProfile')
+            raise 
 if __name__ == '__main__':
     globString = sys.argv[1]
 
     for file in glob.glob(globString):
         print(f'Profiling {file}')
         with open(file) as fin:
+            p = Profile()
+            p.enable()
             profile = ObjectProfile(file)
+            p.disable()
+            s = Stats(p).sort_stats('cumtime')
+            s.print_stats()
 
         directory, name = os.path.split(file)
         with open(f'ObjectProfiles\\{name}', 'wb') as fout:

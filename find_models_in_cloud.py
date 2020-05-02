@@ -8,13 +8,14 @@ import open3d as o3d
 from mpl_toolkits.mplot3d import Axes3D
 from ModelProfile import *
 
+
 def main():
     ''' Given a cloud and meshes to find this will invoke
     the model finder in order to find mesh instances in the scene
     The final result is plotted using Open3d 
     '''
 
-    mesh_files = ['Models/ComparisonSTLs/hammer.stl', 'Models/ComparisonSTLs/pliers.stl']
+    mesh_files = ['Models/ComparisonSTLs/hammer.stl', 'Models/ComparisonSTLs/saw.stl']
     scene = 'Models/ComparisonScenes/Cloud_comparison_scene_1.json'
     gridResolution = 0.002
 
