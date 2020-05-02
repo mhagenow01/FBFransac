@@ -30,7 +30,7 @@ def sameHemisphere(points):
 
 
 EPSILON = 0.00001
-DENSITY = 50000
+DENSITY = 0.005
 class SupportSphere:
     def __init__(self, x, maxIter = 20):
         self.X = x
@@ -77,7 +77,7 @@ class SupportSphere:
 class ObjectProfile:
     def __init__(self, meshFile):
         area, scale = surfaceArea(meshFile)
-        cloud = pointCloudFromMesh(meshFile, int(DENSITY * area))
+        cloud = pointCloudFromMesh(meshFile, 4000)
         print(cloud.shape)
         radii = np.arange(0.05, 0.25, 0.001) * np.min(scale)
         self.findKeyPoints(radii, cloud)

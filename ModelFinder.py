@@ -25,7 +25,7 @@ class ModelFinder:
         self.Scene = None
         self.SceneNormals = None
         self.SceneKd = None
-        self.MaxDistanceError = 0.003
+        self.MaxDistanceError = 3 # 0.003
 
     @verbose()
     def set_meshes(self, meshFiles, resolution = None):
@@ -95,7 +95,7 @@ class ModelFinder:
         meshFaces = mesh.Faces - meshKp
         R, o, error = self.ICPrandomRestarts(R, o, meshFaces, mesh.Normals, mesh.Sizes, mesh.Radius)
         if R is None or o is None:
-            return None, None
+            return None, None, error
 
         return R, o - meshKp @ R.T, error
 
@@ -133,6 +133,8 @@ class ModelFinder:
         number_restarts = 10
         best_error = np.inf
         max_faces = 100
+        best_R = None
+        best_o = None
 
         # Downsample the faces if necessary
         if len(mesh)>max_faces:
@@ -148,12 +150,11 @@ class ModelFinder:
             o_pert = np.mean((R @ mesh.T).T - np.mean(mesh, axis=0)) + 0.00 * np.array(
                 [random.random() - 0.5, random.random() - 0.5, random.random() - 0.5]).reshape((1, 3))
 
-            R_temp, o_temp, error = self.runICP(R,o+o_pert,mesh,meshNormals, meshSizes)
-
+            R_temp, o_temp, error = self.runICP(R,o+o_pert,mesh,meshNormals, meshSizes,meshRadius)
             if error<best_error:
                 best_error = error
                 best_R, best_o = R_temp, o_temp
-
+        
         return best_R, best_o, best_error
 
     def runICP(self, R, o, mesh, meshNormals, meshSizes, meshRadius):
@@ -161,7 +162,7 @@ class ModelFinder:
         and find a better pose that aligns the closest points
         '''
         # Parameters for ICP
-        max_iterations = 30 # max iterations for a mesh to preserve performance
+        max_iterations = 300 # max iterations for a mesh to preserve performance
         keep_per = 0.8 # percentage to keep for occlusion-handling
         tolerance = 0.001 # when to stop ICP -> cumulative error
         distance_threshold = 2*meshRadius
