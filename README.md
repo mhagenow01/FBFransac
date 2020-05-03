@@ -57,6 +57,8 @@ For FAMrec there are a few main classes that build up the method:
 * ModelFinder:
 * Mesh:
 * ModelProfile:
+
+
 Additionally, the EfficientRANSAC and FBFRansac folders have their own classes and scripts found in separate folders. There is also a utilities folder that
 provides several scripts for converting file formats, etc.
 #### Core Algorithm
@@ -93,7 +95,7 @@ END
 
 Here we use a modified Woods-Saxon distribution as a weighting function to compute the weighted average. 
 
-<div align="center"><img src="https://render.githubusercontent.com/render/math?math=w_i=\frac{1}{1%2Be^{\frac{d_i-R}{dr}}}"></div>
+<div align="center"><img src="https://render.githubusercontent.com/render/math?math=w_i=\frac{1}{1%2Be^{\frac{d_i-R}{dr}}}" style="width:150px"></div>
 
 This ensures that points inside of the target radius are always considered heavily, while maintaining a smooth transition from "relevant points" to "irrelevant points" as they get farther away, which allows for consistent convergence.
 
@@ -121,7 +123,7 @@ for the matching related to the size of the faces. In order to combat this, we i
 that punishes large mesh faces in the fitting. Our weighting function also considers distance between the matching points
 as is a common choice in weighting functions. Our final weighting functions combines these two ideas and can be computed as:
 
-<div align="center"><img src="https://render.githubusercontent.com/render/math?math=w_i=(1-\frac{d_i}{d_t})(\frac{A_i}{max_j(A_j)})"></div>
+<div align="center"><img src="https://render.githubusercontent.com/render/math?math=w_i=(1-\frac{d_i}{d_t})(\frac{A_i}{max_j(A_j)})" style="width:150px"></div>
 
 where <img src="https://render.githubusercontent.com/render/math?math=d_i"> is the distance between the face and the closest point in the point cloud, 
 <img src="https://render.githubusercontent.com/render/math?math=d_t"> is the maximum distance considered
