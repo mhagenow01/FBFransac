@@ -172,6 +172,7 @@ and comparison is found below.**
 | Screwdriver     | 10            | 1                    | 32             | 58            | 4              |
 | Spanning Wrench | 10            | 0                    | 27             | 49            | 19             |
 | Wrench          | 4             | 3                    | 19             | 23            | 83             |
+
 <div align="center"> Table 1: FAMrec Combinatorial Testing Results </div>
 
 We find that our system is able to recognize objects across a variety of shapes and sizes, though we still believe
@@ -245,6 +246,7 @@ was run on FAMrec.
 | Screwdriver     | 4             | 0                    | 28             | 35            | 41             |
 | Spanning Wrench | 0             | 0                    | 28             | 31            | 46             |
 | Wrench          | 4             | 29                   | 9              | 14            | 49             |
+
 <div align="center"> Table 2: ObjRecRANSAC Combinatorial Testing Results </div>
 
 We find that FAMrec has a slightly higher true positive rate in recognition. FAMrec also has signnificantly fewer false positives.
@@ -295,6 +297,7 @@ metric to compare the methods. The following two tables have the classification 
 | cone      | 0.4            | person     | 0.0            | tv stand   | 0.0            |
 | cup       | 0.0            | piano      | 0.0            | vase       | 0.6            |
 | curtain   | 0.4            | plant      | 1.0            | wardrobe   | 0.0            |
+
 <div align="center"> Table 3: PointNet++ Classification Testing </div>
 
 ##### FAMrec
@@ -310,6 +313,7 @@ metric to compare the methods. The following two tables have the classification 
 | cone      | 0.4            | person     | 0.0            | tv stand   | 0.0            |
 | cup       | 0.0            | piano      | 0.0            | vase       | 0.6            |
 | curtain   | 0.4            | plant      | 1.0            | wardrobe   | 0.0            |
+
 <div align="center"> Table 4: FAMrec Classification Testing </div>
 
 DISCUSS OVERALL CLASSIFICATION AND SOME OF THE ISSUES!!
