@@ -284,9 +284,6 @@ metric to compare the methods. Table has the classification results:
 
 
 #### Conclusions and Future Work
-Greater robustness to noise, occlusions, further testing on situations
-Based on error, tell the robot to adjust its view for a better recognition?
-
 The results suggest that this algorithm is, in many ways, on par with others in the field. It shows the potential to beat other competing algorithms, and even compare favorably against modern neural network approaches if this were refined significantly. However, currently this implementation is still in its technical infancy. There are a number of improvements that could be made to improve the practicality, and accuracy. The most signficant of which is the concept of "culling space" as we look for objects. Currently, if we fail to find a keypoint at a certain radius, we don't gain any information and might sample the same region at the same radius again. This is highly problematic when the target object represents a very small portion of the scene. If a region could be determined to *not* contain an object, the convergence of the algorithm would be sped up dramatically. 
 
 Secondly, this algorithm was designed with a highly parallel hardware platform in mind. The search for keypoints is simple and can be completely parallelized to take advantage of modern GPUs. We expect that this would, again, dramatically improve the performance of this algorithm.
@@ -294,6 +291,8 @@ Secondly, this algorithm was designed with a highly parallel hardware platform i
 Thirdly, if the object database is very large and the odds of any one object being in the scene are low, the algorithm performs very poorly. In that case, it would be much more efficient to look for keypoints in the scene and then match them to objects in the database. Going in this direction would likely require significant modifications to the core algorithm.
 
 Lastly, there is room for improvement around robustness to occlusions. In real scenes, it is unlikely that we will have a full 360 degree view of the object. Most commonly we will have a single perspective, which would be similar to 50% occlusion. There are directions that can be taken to improve this, but in general this is an active area of research, as there is no broadly applicable solution.
+In addition to making our algorithm more robust to occlusions, we also might experiment with recognizing occlusions. With our prototype setup in which a camera
+is mounted to a robot, knowing an occlusion is occurring may inform the robot to change its pose to give the camera a less occluded view.
 
 #### References
 [1] P. Liu, Y. Wang, D. Huang and Z. Zhang, "Recognizing Occluded 3D Faces Using an Efficient ICP Variant," 2012 IEEE International Conference on Multimedia and Expo, Melbourne, VIC, 2012, pp. 350-355.  
