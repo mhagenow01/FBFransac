@@ -16,6 +16,9 @@ are often known ahead of time, but the precise locations may not be known, warra
 Notably, as much of the development involves composites and lightweight metals, there is little color
 differentiation in the environment.
 
+![target setup](https://mhagenow01.github.io/FBFransac/images/nasa_uli_setup.png "Target Setup")
+<div align="center"> Figure 2: Target setup of algorithm </div>
+
 When originally searching for a method for our application, we were unable to find a reliable
 method that could identify objects in our prototype environment, which inspired us to try to create
 a method. More detail is available in our [original proposal](./proposal.pdf).
@@ -67,7 +70,7 @@ provides several scripts for converting file formats, etc.
 One of the simplest ways to differentiate two objects is their scale. If you can determine the scale of the geometry in the scene, many objects can be quickly ruled out. One way of getting at this idea of localized scale is through the medial axis of the scene. The medial axis is defined as the set of all points that have two or more equidistant scene points. By searching for points on the medial axis of the scene that have the right distance-to-scene value, it is possible to search for locations with an appropriate scale.
 
 ![Medial Axis](https://mhagenow01.github.io/FBFransac/images/medial_axis.png "Medial Axis")
-<div align="center"> Figure 2: Left) Example of Medial Axis adapted from [xyz] Right) Discretized medial axis representation of a toy screw </div>
+<div align="center"> Figure 3: Left) Example of Medial Axis adapted from [xyz] Right) Discretized medial axis representation of a toy screw </div>
 
 At the core of this algorithm is the ability to find medial axis points that have *approximately* the radius we are looking for. While there are a number of algorithms to find medial axis points from a geometry, they are generally highly sensitive to noise in the cloud. The need to *robustly* identify a *single* point on the medial axis that is a certain distance from the scene motivates the following, Mean Shift inspired, novel algorithm:
 
@@ -186,7 +189,7 @@ We desire to use our algorithm with point clouds from real 3D scenes, which requ
     to the expected noise measured from our actual camera.
 
 ![noise testing](https://mhagenow01.github.io/FBFransac/images/noise_testing.png "Noise Testing")
-<div align="center"> Figure 3: Noise Testing </div>
+<div align="center"> Figure 4: Noise Testing </div>
 
 
 #### Recognition under Occlusion
@@ -199,7 +202,7 @@ axis of the remaining points of the screw starts to align with the mesh principa
 At approximately 80 percent, the mesh fit is incorrect. More discussion about occlusions can be found below in the future work.
 
 ![occlusion testing](https://mhagenow01.github.io/FBFransac/images/percent_occlusion_ICP.png "Occlusion Testing")
-<div align="center"> Figure 4: ICP Occlusion testing for the Toy Screw model from the side angle </div>
+<div align="center"> Figure 5: ICP Occlusion testing for the Toy Screw model from the side angle </div>
 
 ### Issues/Limitations
 The primary limitation to this algorithm is that its runtime is underwhelming compared to other solutions with a highly refined implementation. In the worst case of isolated object classification (a task which this was not designed for), it can take upwards of 2 minutes to perform a single classification. While there is still signficant room for improvement in the runtime of this implementation, the complexity of improving it has thus far been cost prohibitive. 
@@ -216,13 +219,13 @@ As a first basic test, we compare FAMrec to our Efficient RANSAC implementation 
    can find any sphere or cylinder, FAMrec is based on mesh recognition and is therefore not scale and parameter invariant. Thus, both of
     the spheres and cylinders are the same size as the corresponding meshes.
 ![Efficient RANSAC Comparison](https://mhagenow01.github.io/FBFransac/images/efficientComparison.png "Efficient RANSAC Comparison")
-<div align="center"> Figure 5: Efficient RANSAC Comparison </div>
+<div align="center"> Figure 6: Efficient RANSAC Comparison </div>
 
 Both of our algorithms are able to find and determine the pose of the spheres and cylinders. We ran each approximately 10 times and both algorithms find all four objects in the majority. As seen in the figure, Efficient RANSAC occasionally has false positives. FAMrec reliability gets the objects, but occasionally will not yield a perfect fit as a result of the ICP occlusion algorithm (not pictured).
 
 #### ObjRecRANSAC
 ![Example ObjRecRANSAC](https://mhagenow01.github.io/FBFransac/images/objrecransac_example_results.png "Example ObjRecRANSAC")
-<div align="center"> Figure 6: Example of ObjRecRANSAC Results </div>
+<div align="center"> Figure 7: Example of ObjRecRANSAC Results </div>
 
 ObjRecRANSAC is a RANSAC-kernel based method that uses random sampling to identify geometry in the environment. The original algorithm was proposed by Papazov et al. [1] in 2011. The key idea is to identify key sets of points that can be used for recognition as part of a RANSAC algorithm.
 
@@ -256,7 +259,7 @@ As we saw in practice with Efficient RANSAC, however, these normals are construc
 robust normal estimations which can greatly impact the theory.
 
 ![Confusion Results](https://mhagenow01.github.io/FBFransac/images/confusion_results.png "Confusion Results")
-<div align="center"> Figure 7: Confusion Results </div>
+<div align="center"> Figure 8: Confusion Results </div>
 
 While our algorithm only performs marginally better than the current state of the art, we believe with future work, 
 we can greatly improve our algorithm. See the 'future work' section below.
