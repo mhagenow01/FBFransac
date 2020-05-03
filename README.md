@@ -173,8 +173,9 @@ ADD NOTES ON PERFORMANCE!
 
 #### Recognition with Point Cloud Noise
 Recognition under noise
+![noise testing](https://mhagenow01.github.io/FBFransac/images/noise_testing.png "Noise Testing")
+<div align="center"> Figure XYZ: Noise Testing </div>
 
-Maybe use the example scene that works well and keep adding noise until it doesn't work?
 
 #### Recognition under Occlusion
 The medial-axis part of our algorithm can still identify geometry under large percentages of occlusion, provided that convex 
@@ -196,6 +197,9 @@ We compare our method with two state of the art open-source algorithms: ObjRecRa
 
 #### Efficient RANSAC
 
+![Efficient RANSAC Comparison](https://mhagenow01.github.io/FBFransac/images/efficientComparison.png "Efficient RANSAC Comparison")
+<div align="center"> Figure XYZ: Efficient RANSAC Comparison </div>
+
 #### ObjRecRANSAC
 ObjRecRANSAC is a RANSAC-kernel based method that uses random sampling to identify geometry in the environment. The original algorithm was proposed by Papazov et al. [1] in 2011. The key idea is to identify key sets of points that can be used for recognition as part of a RANSAC algorithm.
 
@@ -216,6 +220,14 @@ to run a comparison. We created 25 example scenes to test the algorithms. These 
 | Wrench          | 4             | 29                   | 9              | 14            | 49             |
 
 
+![Example ObjRecRANSAC](https://mhagenow01.github.io/FBFransac/images/objrecransac_example_results.png "Example ObjRecRANSAC")
+<div align="center"> Figure XYZ: Example of ObjRecRANSAC Results </div>
+
+![Confusion Results](https://mhagenow01.github.io/FBFransac/images/confusion_results.png "Confusion Results")
+<div align="center"> Figure XYZ: Confusion Results </div>
+
+
+
 #### PointNet++
 PointNet++ is a state of the art neural-network based approach for object recognition. The algorithm was proposed in Qi et al. [2] in 2017. Using a variety of custom pre-processing layers and tensorflow, this approach is trained to recognize objects and their specific classification.
 
@@ -229,6 +241,20 @@ extract 30 representative meshes (We were unable to convert 10 of the classes to
 we load them 5 times with random orientations in PointNet++ and get the classification. We also load them 5 times with random orientations into FAMrec and
 get what object is recognized (Note: FAMrec might return no object or possibly multiple - it is not a classifier). This gives us a biased, but reasonable
 metric to compare the methods. Table has the classification results:
+
+| Object    | Classification | Object     | Classification | Object     | Classification |
+|-----------|----------------|------------|----------------|------------|----------------|
+| bed       | 0.0            | door       | 0.0            | radio      | 0.4            |
+| bench     | 0.4            | flower pot | 0.0            | range hood | 0.0            |
+| bookshelf | 0.0            | glass box  | 0.0            | sink       | 0.0            |
+| bottle    | 0.0            | keyboard   | 0.2            | stairs     | 0.4            |
+| bowl      | 0.2            | lamp       | 0.4            | stool      | 0.0            |
+| car       | 0.6            | laptop     | 0.0            | tent       | 0.2            |
+| chair     | 0.2            | mantel     | 0.2            | toilet     | 0.0            |
+| cone      | 0.4            | person     | 0.0            | tv stand   | 0.0            |
+| cup       | 0.0            | piano      | 0.0            | vase       | 0.6            |
+| curtain   | 0.4            | plant      | 1.0            | wardrobe   | 0.0            |
+
 
 
 #### Conclusions and Future Work
