@@ -206,17 +206,27 @@ The primary limitation to this algorithm is that its runtime is underwhelming co
 We compare our method with two state of the art open-source algorithms: ObjRecRansac and PointNet++. Details of the implementations and the comparisons follow:
 
 #### Efficient RANSAC
-
+As a first basic test, we compare FAMrec to our Efficient RANSAC implementation for recognizing sphere and cylinder primitives. Our goal here is only to perform
+ a basic validation test of our method. For these two particular primitives they are well suited for FAMrec as the medial axis for the sphere
+  is a single point and for the cylinder, it is a straight line. We construct a test scene with two of each object. While efficient RANSAC
+   can find any sphere or cylinder, FAMrec is based on mesh recognition and is therefore not scale and parameter invariant. Thus, both of
+    the spheres and cylinders are the same size as the corresponding meshes.
 ![Efficient RANSAC Comparison](https://mhagenow01.github.io/FBFransac/images/efficientComparison.png "Efficient RANSAC Comparison")
 <div align="center"> Figure XYZ: Efficient RANSAC Comparison </div>
 
+Both of our algorithms are able to find and determine the pose of the spheres and cylinders. We ran each approximately 10 times and both algorithms find all four objects in the majority. As seen in the figure, Efficient RANSAC occasionally has false positives. FAMrec reliability gets the objects, but occasionally will not yield a perfect fit as a result of the ICP occlusion algorithm (not pictured).
+
 #### ObjRecRANSAC
+![Example ObjRecRANSAC](https://mhagenow01.github.io/FBFransac/images/objrecransac_example_results.png "Example ObjRecRANSAC")
+<div align="center"> Figure XYZ: Example of ObjRecRANSAC Results </div>
+
 ObjRecRANSAC is a RANSAC-kernel based method that uses random sampling to identify geometry in the environment. The original algorithm was proposed by Papazov et al. [1] in 2011. The key idea is to identify key sets of points that can be used for recognition as part of a RANSAC algorithm.
 
 Note: The implementation used for the comparison can be found here: https://github.com/tum-mvp/ObjRecRANSAC. In order to build, we found that a very specific set of libraries was needed. This implementation is built against PCL and VTK. In order to get it to work, we choose to manually build VTK 5.10 from source and then to manually build PCL 1.8.0 from source against this VTK. Having other system versions of VTK seems to cause intermittent seg faults as there are many levels in which VTK is included as a library and it is difficult to change the CMake to force a particular version.
 
 Both ObjRecRANSAC and our method take a set of meshes (e.g., stl) and find instances in a provided 3D point cloud. As such, it was relatively straight forward
-to run a comparison. We created 25 example scenes to test the algorithms. These include 1-3 objects in various configurations as well as some false-positive meshes. 
+to run a comparison. We created 3 example scenes to test the algorithms. We run the same combinatorial analysis as 
+was run on FAMrec. 
 
 
 | Object          | True Positive | Misfit True Positive | False Negative | True Negative | False Positive |
@@ -230,13 +240,22 @@ to run a comparison. We created 25 example scenes to test the algorithms. These 
 | Wrench          | 4             | 29                   | 9              | 14            | 49             |
 
 
-![Example ObjRecRANSAC](https://mhagenow01.github.io/FBFransac/images/objrecransac_example_results.png "Example ObjRecRANSAC")
-<div align="center"> Figure XYZ: Example of ObjRecRANSAC Results </div>
+We find that FAMrec has a slightly higher true positive rate in recognition. FAMrec also has signnificantly fewer false positives.
+ObjRecRANSAC is highly dependent on a radius search term to make the RANSAC process tractable. We attempted to tune ObjRecRANSAC to give
+the most favorable results, but ultimately the search radius makes it not paritcularly amenable to objects of various scales. This is
+why the screw is never found. Attempts to make the radius smaller made the program unable to recognize any of the meshes.
+ObjRecRANSAC had a consider number of misfit true positives, which we define as when the correct mesh is selected, but
+it is not fit correctly. These are not reported as true positives in the below confusion matrix. Interestingly, while this type
+of behavior might make sense for FAMrec where the ICP may be caught in a local minima, it goes a bit against the theory used in ObjRecRANSAC.
+ObjRecRANSAC attempts to find point-to-point and normal-to-normal correspondences, so in theory, the pose should also be recovered.
+As we saw in practice with Efficient RANSAC, however, these normals are constructed via nearest neighbors and often do not provide
+robust normal estimations which can greatly impact the theory.
 
 ![Confusion Results](https://mhagenow01.github.io/FBFransac/images/confusion_results.png "Confusion Results")
 <div align="center"> Figure XYZ: Confusion Results </div>
 
-
+While our algorithm only performs marginally better than the current state of the art, we believe with future work, 
+we can greatly improve our algorithm. See the 'future work' section below.
 
 #### PointNet++
 PointNet++ is a state of the art neural-network based approach for object recognition. The algorithm was proposed in Qi et al. [2] in 2017. Using a variety of custom pre-processing layers and tensorflow, this approach is trained to recognize objects and their specific classification.
@@ -266,7 +285,6 @@ metric to compare the methods. Table has the classification results:
 | curtain   | 0.4            | plant      | 1.0            | wardrobe   | 0.0            |
 
 
-
 #### Conclusions and Future Work
 Greater robustness to noise, occlusions, further testing on situations
 Based on error, tell the robot to adjust its view for a better recognition?
@@ -277,7 +295,7 @@ Secondly, this algorithm was designed with a highly parallel hardware platform i
 
 Thirdly, if the object database is very large and the odds of any one object being in the scene are low, the algorithm performs very poorly. In that case, it would be much more efficient to look for keypoints in the scene and then match them to objects in the database. Going in this direction would likely require significant modifications to the core algorithm.
 
-Lastly, there is room for improvment around robustness to occlusions. In real scenes, it is unlikely that we will have a full 360 degree view of the object. Most commonly we will have a single perspective, which would be similar to 50% occlusion. There are directions that can be taken to improve this, but in general this is an active area of research, as there is no broadly applicable solution.
+Lastly, there is room for improvement around robustness to occlusions. In real scenes, it is unlikely that we will have a full 360 degree view of the object. Most commonly we will have a single perspective, which would be similar to 50% occlusion. There are directions that can be taken to improve this, but in general this is an active area of research, as there is no broadly applicable solution.
 
 #### References
 [1] P. Liu, Y. Wang, D. Huang and Z. Zhang, "Recognizing Occluded 3D Faces Using an Efficient ICP Variant," 2012 IEEE International Conference on Multimedia and Expo, Melbourne, VIC, 2012, pp. 350-355.  
