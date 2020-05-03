@@ -203,7 +203,7 @@ At approximately 80 percent, the mesh fit is incorrect. More discussion about oc
 The primary limitation to this algorithm is that its runtime is underwhelming compared to other solutions with a highly refined implementation. In the worst case of isolated object classification (a task which this was not designed for), it can take upwards of 2 minutes to perform a single classification. While there is still signficant room for improvement in the runtime of this implementation, the complexity of improving it has thusfar been cost prohibitive. 
 
 ### Comparisons
-We compare our method with two state of the art open-source algorithms: ObjRecRansac and PointNet++. Details of the implementations and the comparisons follow:
+We compare our method with our implementation of Efficient RANSAC as well as with two state of the art open-source algorithms: ObjRecRansac and PointNet++. Details of the implementations and the comparisons follow:
 
 #### Efficient RANSAC
 As a first basic test, we compare FAMrec to our Efficient RANSAC implementation for recognizing sphere and cylinder primitives. Our goal here is only to perform
@@ -261,6 +261,9 @@ we can greatly improve our algorithm. See the 'future work' section below.
 PointNet++ is a state of the art neural-network based approach for object recognition. The algorithm was proposed in Qi et al. [2] in 2017. Using a variety of custom pre-processing layers and tensorflow, this approach is trained to recognize objects and their specific classification.
 
 Note: The implementation used for the comparison can be found here: https://github.com/charlesq34/pointnet2. This implementation requires Tensorflow and NVIDIA CUDA Drivers. We were able to build the package using CUDA 9.0 and TensorFlow something. As a neural-net approach, the system required training. We trained using the model40.
+
+![pointnet example objects](https://mhagenow01.github.io/FBFransac/images/pointnet_example_objects.png "pointnet example objects")
+<div align="center"> Figure XYZ: PointNet++ Example Objects </div>
 
 PointNet++ is designed as a classifier, meaning for an input point cloud of a single object, it will return a classification from the labels
 used during training. Thus, a direct comparison similar to above is not possible. Instead, we focus on a comparison where we 
