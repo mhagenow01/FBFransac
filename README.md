@@ -104,10 +104,7 @@ This ensures that points inside of the target radius are always considered heavi
 
 Now that we have an algorithm for finding locations of similar geometric scale, we need to profile each object in our database to determine what we are looking for and how that relates to the object. This is done by simply sweeping out a range of radii of appropriate scale (as determined by the size of the bounding box) and looking for medial axis points at that scale. When profiling an object, we use a thickness (dr) equal to 2% of the target radius. 
 
-Once we have generated profiles for our objects, we iteratively sample...
-
-TODO
-
+Once we have generated profiles for our objects and cached them on disk, we are ready to look for the objects in a scene. This is approached straightforwardly by looking for each possible object in the scene in turn. For each object, a keypoint is randomly selected, and the same algorithm used to profile the object is used to find a keypoint with that radius in the scene. If one is found, then modified ICP is used to align the object.
 
 ##### Modified Iterative-Closest Point
 When determining the pose of 3D objects from noisy data, it is common to use an Iterative-closest point algorithm 
@@ -141,6 +138,12 @@ Finally, to provide a level of robustness to Occlusion that is common particular
 are constructed from a single image, we implement the occlusion method described in [1] . During each ICP iteration
 only a percentage of the closest corresponding face-point combinations are selected. From experimental tuning, we choose to use
 80 percent of the faces, which allows for some Occlusion-handling while not skewing results for non-occluded objects.
+
+##### Pose Validation
+
+Once the algorithm comes up with a potential pose, it must be validated against the scene. This is done by comparing a threshold hold value to a Hausdorff-inspired mesh-to-scene distance metric.
+<div align="center"><img src="https://render.githubusercontent.com/render/math?math=D=max((p_i - f_i)\cdot n_i)" style="width:150px"></div>
+Where here, <img src="https://render.githubusercontent.com/render/math?math=p_i"> is the closest scene point to face <img src="https://render.githubusercontent.com/render/math?math=f_i">, which has normal <img src="https://render.githubusercontent.com/render/math?math=n_i">. This metric is compared against the expected error in scene point measurement. If the model fits perfectly, we would expect each of the faces to have corresponding scene points lying on the face (within error tolerance). If the model is incorrectly oriented, or if it is simply the wrong model, we would expect at least one face to be significantly displaced from the scene.
 
 ##### Examples
 We provide a main interface that allows for specification of the point cloud and the meshes. It will find
@@ -195,7 +198,7 @@ At approximately 80 percent, the mesh fit is incorrect. More discussion about oc
 <div align="center"> Figure XYZ: ICP Occlusion testing for the Toy Screw model from the side angle </div>
 
 ### Issues/Limitations
-
+The primary limitation to this algorithm is that its runtime is underwhelming compared to other solutions with a highly refined implementation. In the worst case of isolated object classification (a task which this was not designed for), it can take upwards of 2 minutes to perform a single classification. While there is still signficant room for improvement in the runtime of this implementation, the complexity of improving it has thusfar been cost prohibitive. 
 
 ### Comparisons
 We compare our method with two state of the art open-source algorithms: ObjRecRansac and PointNet++. Details of the implementations and the comparisons follow:
@@ -266,6 +269,13 @@ metric to compare the methods. Table has the classification results:
 Greater robustness to noise, occlusions, further testing on situations
 Based on error, tell the robot to adjust its view for a better recognition?
 
+The results suggest that this algorithm is, in many ways, on par with others in the field. It shows the potential to beat other competing algorithms, and even compare favorably against modern neural network approaches if this were refined significantly. However, currently this implementation is still in its technical infancy. There are a number of improvements that could be made to improve the practicality, and accuracy. The most signficant of which is the concept of "culling space" as we look for objects. Currently, if we fail to find a keypoint at a certain radius, we don't gain any information and might sample the same region at the same radius again. This is highly problematic when the target object represents a very small portion of the scene. If a region could be determined to *not* contain an object, the convergence of the algorithm would be sped up dramatically. 
+
+Secondly, this algorithm was designed with a highly parallel hardware platform in mind. The search for keypoints is simple and can be completely parallelized to take advantage of modern GPUs. We expect that this would, again, dramatically improve the performance of this algorithm.
+
+Thirdly, if the object database is very large and the odds of any one object being in the scene are low, the algorithm performs very poorly. In that case, it would be much more efficient to look for keypoints in the scene and then match them to objects in the database. Going in this direction would likely require significant modifications to the core algorithm.
+
+Lastly, there is room for improvment around robustness to occlusions. In real scenes, it is unlikely that we will have a full 360 degree view of the object. Most commonly we will have a single perspective, which would be similar to 50% occlusion. There are directions that can be taken to improve this, but in general this is an active area of research, as there is no broadly applicable solution.
 
 #### References
 [1] P. Liu, Y. Wang, D. Huang and Z. Zhang, "Recognizing Occluded 3D Faces Using an Efficient ICP Variant," 2012 IEEE International Conference on Multimedia and Expo, Melbourne, VIC, 2012, pp. 350-355.  
