@@ -301,6 +301,8 @@ metric to compare the methods. The following two tables have the classification 
 <div align="center"> Table 3: PointNet++ Classification Testing </div>
 
 ##### FAMrec
+
+
 | Object    | Classification | Object     | Classification | Object     | Classification |
 |-----------|----------------|------------|----------------|------------|----------------|
 | bed       | 0.0            | door       | 0.0            | radio      | 0.4            |
