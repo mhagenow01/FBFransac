@@ -17,7 +17,7 @@ differentiation in the environment.
 
 When originally searching for a method for our application, we were unable to find a reliable
 method that could identify objects in our prototype environment, which inspired us to try to create
-a method. More detail is available in our original proposal ADD LINK.
+a method. More detail is available in our [original proposal](./proposal.pdf).
 
 ### Approach
 Existing approaches to arbitrary mesh recognition often use either a neural-net or RANSAC-based kernel. In our work, we
@@ -28,7 +28,7 @@ wherever possible.
 In developing this approach, we built multiple other implementations. First, we developed an Efficient RANSAC program that
 could identify spheres and cylinders. We then created our first algorithm Face-Based-Features RANSAC (FBF ransac) which was 
 a RANSAC-based kernel that used face to point correspondence instead of point to point typical of other RANSAC methods. Both of
-these implementations are also in github, but are not discussed further. More detail on these can be found in our Midterm report (LINK).
+these implementations are also in github, but are not discussed further. More detail on these can be found in our [midterm report](./midtermreport.pdf).
 
 ### Implementation (FAMrec)
 #### Required Packages
