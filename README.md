@@ -53,11 +53,11 @@ or conda install -c conda-forge point_cloud_utils
 
 #### Data Structure
 For FAMrec there are a few main classes that build up the method:
-* find_models_in_cloud:
-* ModelFinder:
-* Mesh:
-* ModelProfile:
-
+* find_models_in_cloud: takes a list of meshes and a scene (STL and JSON files respectively) and runs the FAMrec
+method. The results are plotted using Open3D.
+* ModelFinder: This is the main class that implements the FAMrec method. This contains the hypothesis generation and refining steps.
+* Mesh: This implements basic functions for the mesh including calculating distance fields, normals, etc.
+* ModelProfile: This function performs the medial axis preprocessing for a mesh. It must be called for each mesh (you can use wildcards for meshes in a folder) before running find_models_in_cloud.
 
 Additionally, the EfficientRANSAC and FBFRansac folders have their own classes and scripts found in separate folders. There is also a utilities folder that
 provides several scripts for converting file formats, etc.
@@ -111,7 +111,7 @@ When determining the pose of 3D objects from noisy data, it is common to use an 
 as a means of refining an initial estimate of the object pose. We extend the core algorithm in two key ways to make
 it amenable to our object recognition formulation.
 
-As a breif reminder, the premise of ICP is to complete an optimal rotation and translation in order
+As a brief reminder, the premise of ICP is to complete an optimal rotation and translation in order
 to align two sets of points. The sets of points are constructed by finding the closest corresponding
 points between the sets. The optimal translation and rotation can be solved as a linear system using SVD.
 
@@ -146,11 +146,6 @@ Once the algorithm comes up with a potential pose, it must be validated against 
 <div align="center"><img src="https://render.githubusercontent.com/render/math?math=D=max((p_i - f_i)\cdot n_i)" style="width:150px"></div>
 
 Where here, <img src="https://render.githubusercontent.com/render/math?math=p_i"> is the closest scene point to face <img src="https://render.githubusercontent.com/render/math?math=f_i">, which has normal <img src="https://render.githubusercontent.com/render/math?math=n_i">. This metric is compared against the expected error in scene point measurement. If the model fits perfectly, we would expect each of the faces to have corresponding scene points lying on the face (within error tolerance). If the model is incorrectly oriented, or if it is simply the wrong model, we would expect at least one face to be significantly displaced from the scene.
-
-##### Examples
-We provide a main interface that allows for specification of the point cloud and the meshes. It will find
-mesh instances in the point cloud and display results using Open3D. Note: The first time you run for a particular mesh,
-it will need to run the mesh pre-processing which can take 1-2 minutes.
 
 ### Results
 #### General results
@@ -200,7 +195,7 @@ At approximately 80 percent, the mesh fit is incorrect. More discussion about oc
 <div align="center"> Figure XYZ: ICP Occlusion testing for the Toy Screw model from the side angle </div>
 
 ### Issues/Limitations
-The primary limitation to this algorithm is that its runtime is underwhelming compared to other solutions with a highly refined implementation. In the worst case of isolated object classification (a task which this was not designed for), it can take upwards of 2 minutes to perform a single classification. While there is still signficant room for improvement in the runtime of this implementation, the complexity of improving it has thusfar been cost prohibitive. 
+The primary limitation to this algorithm is that its runtime is underwhelming compared to other solutions with a highly refined implementation. In the worst case of isolated object classification (a task which this was not designed for), it can take upwards of 2 minutes to perform a single classification. While there is still signficant room for improvement in the runtime of this implementation, the complexity of improving it has thus far been cost prohibitive. 
 
 ### Comparisons
 We compare our method with our implementation of Efficient RANSAC as well as with two state of the art open-source algorithms: ObjRecRansac and PointNet++. Details of the implementations and the comparisons follow:
