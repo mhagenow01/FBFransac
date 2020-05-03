@@ -142,7 +142,9 @@ only a percentage of the closest corresponding face-point combinations are selec
 ##### Pose Validation
 
 Once the algorithm comes up with a potential pose, it must be validated against the scene. This is done by comparing a threshold hold value to a Hausdorff-inspired mesh-to-scene distance metric.
+
 <div align="center"><img src="https://render.githubusercontent.com/render/math?math=D=max((p_i - f_i)\cdot n_i)" style="width:150px"></div>
+
 Where here, <img src="https://render.githubusercontent.com/render/math?math=p_i"> is the closest scene point to face <img src="https://render.githubusercontent.com/render/math?math=f_i">, which has normal <img src="https://render.githubusercontent.com/render/math?math=n_i">. This metric is compared against the expected error in scene point measurement. If the model fits perfectly, we would expect each of the faces to have corresponding scene points lying on the face (within error tolerance). If the model is incorrectly oriented, or if it is simply the wrong model, we would expect at least one face to be significantly displaced from the scene.
 
 ##### Examples
