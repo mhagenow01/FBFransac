@@ -177,7 +177,12 @@ ADD MORE DISCUSSION.
 ADD NOTES ON PERFORMANCE!
 
 #### Recognition with Point Cloud Noise
-Recognition under noise
+We desire to use our algorithm with point clouds from real 3D scenes, which requires some level
+ of robustness to measurement noise. To test our algorithm, we create a 3 object recognition scene
+  and perform 5 recognition trials at various levels of injected Gaussian noise. As seen in the
+   figure below, our algorithm performs well for less than 2 mm of injected noise. This is comparable
+    to the expected noise measured from our actual camera.
+
 ![noise testing](https://mhagenow01.github.io/FBFransac/images/noise_testing.png "Noise Testing")
 <div align="center"> Figure XYZ: Noise Testing </div>
 
@@ -196,6 +201,8 @@ At approximately 80 percent, the mesh fit is incorrect. More discussion about oc
 
 ### Issues/Limitations
 The primary limitation to this algorithm is that its runtime is underwhelming compared to other solutions with a highly refined implementation. In the worst case of isolated object classification (a task which this was not designed for), it can take upwards of 2 minutes to perform a single classification. While there is still signficant room for improvement in the runtime of this implementation, the complexity of improving it has thus far been cost prohibitive. 
+
+Unfortunately, due to building access issues, we were unable to test our algorithm against real objects from the robot Kinect camera. In the future, we hope to do further testing and iteration to make our algorithm work with the actual robot system.
 
 ### Comparisons
 We compare our method with our implementation of Efficient RANSAC as well as with two state of the art open-source algorithms: ObjRecRansac and PointNet++. Details of the implementations and the comparisons follow:
