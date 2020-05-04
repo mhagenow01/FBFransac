@@ -16,7 +16,7 @@ are often known ahead of time, but the precise locations may not be known, warra
 Notably, as much of the development involves composites and lightweight metals, there is little color
 differentiation in the environment.
 
-![target setup](https://mhagenow01.github.io/FBFransac/images/nasa_uli_setup.png "Target Setup")
+![target setup](https://mhagenow01.github.io/FBFransac/images/nasa_uli_setup.JPG "Target Setup")
 <div align="center"> Figure 2: Target setup of algorithm </div>
 
 When originally searching for a method for our application, we were unable to find a reliable
