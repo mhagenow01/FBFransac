@@ -274,14 +274,7 @@ Note: The implementation used for the comparison can be found [here](https://git
 ![pointnet example objects](https://mhagenow01.github.io/FBFransac/images/pointnet_example_objects.png "pointnet example objects")
 <div align="center"> Figure 8: PointNet++ Example Objects </div>
 
-PointNet++ is designed as a classifier, meaning for an input point cloud of a single object, it will return a classification from the labels
-used during training. Thus, a direct comparison similar to above is not possible. Instead, we focus on a comparison where we 
-use FAMrec as a classifier for a representative set of objects from the same classes that the PointNet++ model was built upon.
-We train PointNet++ using the ModelNet40 database from Princeton [6] ([link](https://modelnet.cs.princeton.edu/)). From the test set of ModelNet40, we
-extract 30 representative meshes (We were unable to convert 10 of the classes to a format that works with our mesh importing system). For each of these 30 objects,
-we load them 5 times with random orientations in PointNet++ and get the classification. We also load them 5 times with random orientations into FAMrec and
-get what object is recognized (Note: FAMrec might return no object or possibly multiple - it is not a classifier). This gives us a biased, but reasonable
-metric to compare the methods. The following two tables have the classification results:
+PointNet++ is designed as a classifier, meaning for an input point cloud of a single object, it will return a classification from the labels used during training. Thus, a direct comparison similar to above is not possible. Instead, we focus on a comparison where we use FAMrec as a classifier for a representative set of objects from the same classes that the PointNet++ model was built upon. We train PointNet++ using the ModelNet40 database from Princeton [6] ([link](https://modelnet.cs.princeton.edu/)). From the test set of ModelNet40, we extract 30 randomly sampled meshes (We were unable to convert 10 of the classes to a format that works with our mesh importing system). For each of these 30 objects, we load them 5 times with random orientations in PointNet++ and get the classification. We also load them 5 times with random orientations into FAMrec and get what object is recognized (Note: FAMrec might return no object or possibly multiple - it is not a classifier). This gives us a biased, but reasonable metric to compare the methods. The following two tables have the classification results:
 
 ##### PointNet++
 
@@ -318,7 +311,12 @@ metric to compare the methods. The following two tables have the classification 
 
 <div align="center"> Table 4: FAMrec Classification Testing </div>
 
-TODO: DISCUSS OVERALL CLASSIFICATION AND SOME OF THE ISSUES!!
+Overall, the accuracy of our method compares favorably to that of PointNet++. The following caveats should be considered, however:
+1. PointNet++ performed significantly worse on our selection of individual objects than the reported dataset average. 
+2. With the current implementation of our algorithm, it takes much longer to reach a conclusion than PointNet++. 
+3. Some of the models, like the car, contain interior detail. This is an unrealistic piece of information that causes our algorithm to behave erratically (i.e. finding the car, but also attempting to identify objects *inside* of the car).
+4. The scale of the models are inconsistent. While this shouldn't affect fundamental classification results, it results in unexpected confusion, like confusing a bed for a car.
+
 
 #### Conclusions and Future Work
 The results suggest that this algorithm is, in many ways, on par with others in the field. It shows the potential to beat other competing algorithms, and even compare favorably against modern neural network approaches if this were refined significantly. However, currently this implementation is still in its technical infancy. There are a number of improvements that could be made to improve the practicality, and accuracy. The most signficant of which is the concept of "culling space" as we look for objects. Currently, if we fail to find a keypoint at a certain radius, we don't gain any information and might sample the same region at the same radius again. This is highly problematic when the target object represents a very small portion of the scene. If a region could be determined to *not* contain an object, the convergence of the algorithm would be sped up dramatically. 
