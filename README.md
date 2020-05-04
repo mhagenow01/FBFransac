@@ -138,6 +138,9 @@ and <img src="https://render.githubusercontent.com/render/math?math=max_j(A_j)">
 Second, we implement a random restarts framework around the ICP algorithm. The medial axis reliably gives candidate
 positions for the mesh, but not rotation. In order to prevent the ICP from getting caught in local minima during iterations,
 we use a random restarts approach where each restart is given a random orientation (drawn from the Haar distribution for SO(3)).
+In our implementation, we use 10 random restarts. Most our geometry had a single principal axis, and thus escaping
+local minima simply required one rotation that avoided the "upside down" configuration. More complicated geometry
+subject to additional minima might require more restarts.
 
 Finally, to provide a level of robustness to occlusion that is common particularly when point clouds
 are constructed from a single image, we implement the occlusion method described in [3] . During each ICP iteration
@@ -177,11 +180,11 @@ and comparison is found below.
 <div align="center"> Table 1: FAMrec Combinatorial Testing Results </div>
 
 We find that our system is able to recognize objects across a variety of shapes and sizes, though we still believe
-the algorithm can be improved as far as reliability. In particular, our method had a challenge with the wrench model.
-
-ADD MORE DISCUSSION.
-
-ADD NOTES ON PERFORMANCE!
+the algorithm can be improved as far as reliability. In particular, our method had a challenge with the wrench model which
+was often mistaken as a series of screws. Such a classification is still a potential issue with our formulation
+where smaller geometry with similar local scales can be found within larger geometry. As future mitigation,
+we propose to cull the scene space as objects are found and do mesh identification ordered by decreasing volume. More
+details are below.
 
 #### Recognition with Point Cloud Noise
 We desire to use our algorithm with point clouds from real 3D scenes, which requires some level
@@ -271,11 +274,13 @@ we can greatly improve our algorithm. See the 'future work' section below.
 PointNet++ is a state of the art neural-network based approach for object recognition. The algorithm was proposed in Qi et al. [5] in 2017. Using a variety of custom pre-processing layers and tensorflow, this approach is trained to recognize objects and their specific classification.
 
 Note: The implementation used for the comparison can be found [here](https://github.com/charlesq34/pointnet2). This implementation requires Tensorflow and NVIDIA CUDA Drivers. We were able to build the package using CUDA 9.0 and TensorFlow something. As a neural-net approach, the system required training. We trained using the ModelNet40.
+Note: we trained using a single 4 GB GPU over the course of approximately 20 hours. Due to memory restrictions, the training was ran with a sub-recommended batch
+size, which may partially explain the lower classification results below.
 
 ![pointnet example objects](https://mhagenow01.github.io/FBFransac/images/pointnet_example_objects.png "pointnet example objects")
 <div align="center"> Figure 8: PointNet++ Example Objects </div>
 
-PointNet++ is designed as a classifier, meaning for an input point cloud of a single object, it will return a classification from the labels used during training. Thus, a direct comparison similar to above is not possible. Instead, we focus on a comparison where we use FAMrec as a classifier for a representative set of objects from the same classes that the PointNet++ model was built upon. We train PointNet++ using the ModelNet40 database from Princeton [6] ([link](https://modelnet.cs.princeton.edu/)). From the test set of ModelNet40, we extract 30 randomly sampled meshes (We were unable to convert 10 of the classes to a format that works with our mesh importing system). For each of these 30 objects, we load them 5 times with random orientations in PointNet++ and get the classification. We also load them 5 times with random orientations into FAMrec and get what object is recognized (Note: FAMrec might return no object or possibly multiple - it is not a classifier). This gives us a biased, but reasonable metric to compare the methods. The following two tables have the classification results:
+PointNet++ is designed as a classifier, meaning for an input point cloud of a single object, it will return a classification from the labels used during training. Thus, a direct comparison similar to above is not possible. Instead, we focus on a comparison where we use FAMrec as a classifier for a randomly-selected set of objects from the same classes that the PointNet++ model was built upon. We train PointNet++ using the ModelNet40 database from Princeton [6] ([link](https://modelnet.cs.princeton.edu/)). From the test set of ModelNet40, we extract 30 randomly sampled meshes (We were unable to convert 10 of the classes to a format that works with our mesh importing system). For each of these 30 objects, we load them 5 times with random orientations in PointNet++ and get the classification. We also load them 5 times with random orientations into FAMrec and get what object is recognized (Note: FAMrec might return no object or possibly multiple - it is not a classifier). This gives us a biased, but reasonable metric to compare the methods. The following two tables have the classification results:
 
 ##### PointNet++
 
@@ -312,7 +317,7 @@ PointNet++ is designed as a classifier, meaning for an input point cloud of a si
 
 <div align="center"> Table 4: FAMrec Classification Testing </div>
 
-Overall, the accuracy of our method compares favorably to that of PointNet++. However, the following caveats should be considered:
+Overall, the accuracy of our method (30%) compares favorably to that of PointNet++ (18.7%). However, the following caveats should be considered:
 1. PointNet++ performed significantly worse on our selection of individual objects than the reported dataset average. 
 2. With the current implementation of our algorithm, it takes much longer to reach a conclusion than PointNet++. 
 3. Some of the models, like the car, contain interior detail. This is an unrealistic piece of information that causes our algorithm to behave erratically (i.e. finding the car, but also attempting to identify objects *inside* of the car).
