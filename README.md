@@ -1,12 +1,12 @@
-# FBFransac
-FBF-RANSAC is a RANSAC based method for finding an arbitrary mesh in a scene
-represented as a point cloud. Previous methods have looked at using a
-RANSAC-based method to identify a mesh pose within a scene. Our method differs as it:
-* Pushes computing as much as possible to the mesh side which can be done as a one-time step
-* Hierarchically ...
-* Face-based features rather than relying on similar sampling between a point cloud
-and a sampling of the mesh and normals
+# FAMrec
+FAMrec is a medial-axis and ICP based method for recognizing an arbitrary mesh in a scene
+represented as a point cloud.
 
+We also have an implementation of Efficient RANSAC and FBF-RANSAC (another one of our methods)
+in sub-folders of the repository.
+
+We have created some of our own mesh models, but also use the toolkit set (https://free3d.com/3d-model/toy-tool-kit-982573.html) available under a free personal use license and the Princeton ModelNet40 (https://modelnet.cs.princeton.edu/) for use in academic research only.
+All CAD models are under the ownership and copyright of the original authors.
 
 ### Required Packages
 
