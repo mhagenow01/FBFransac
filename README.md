@@ -311,11 +311,11 @@ PointNet++ is designed as a classifier, meaning for an input point cloud of a si
 
 <div align="center"> Table 4: FAMrec Classification Testing </div>
 
-Overall, the accuracy of our method compares favorably to that of PointNet++. The following caveats should be considered, however:
+Overall, the accuracy of our method compares favorably to that of PointNet++. However, the following caveats should be considered:
 1. PointNet++ performed significantly worse on our selection of individual objects than the reported dataset average. 
 2. With the current implementation of our algorithm, it takes much longer to reach a conclusion than PointNet++. 
 3. Some of the models, like the car, contain interior detail. This is an unrealistic piece of information that causes our algorithm to behave erratically (i.e. finding the car, but also attempting to identify objects *inside* of the car).
-4. The scale of the models are inconsistent. While this shouldn't affect fundamental classification results, it results in unexpected confusion, like confusing a bed for a car.
+4. The scale of the models are inconsistent. While this shouldn't affect fundamental classification results, it results in unexpected confusion, like mistaking a bed for a car, that our algorithm should be robust to in real applications.
 
 
 #### Conclusions and Future Work
