@@ -153,7 +153,7 @@ Where here, <img src="https://render.githubusercontent.com/render/math?math=p_i"
 
 ### Results
 #### General results
-We chose to evaluate our method by testing it on a new set of meshes. We use the freely available Toy Toolkit from free3D (https://free3d.com/3d-model/toy-tool-kit-982573.html).
+We chose to evaluate our method by testing it on a new set of meshes. We use the freely available [Toy Toolkit from free3D](https://free3d.com/3d-model/toy-tool-kit-982573.html).
 This set is comprised of seven meshes: hammer, pliers, saw, screw, screwdriver, spanning wrench, and wrench.
 
 We created 3 random scenes that contain all seven objects with randomized poses. Each example scene is a point cloud consisting
@@ -230,7 +230,7 @@ Both of our algorithms are able to find and determine the pose of the spheres an
 
 ObjRecRANSAC is a RANSAC-kernel based method that uses random sampling to identify geometry in the environment. The original algorithm was proposed by Papazov et al. [4] in 2011. The key idea is to identify key sets of points that can be used for recognition as part of a RANSAC algorithm.
 
-Note: The implementation used for the comparison can be found here: https://github.com/tum-mvp/ObjRecRANSAC. In order to build, we found that a very specific set of libraries was needed. This implementation is built against PCL and VTK. In order to get it to work, we choose to manually build VTK 5.10 from source and then to manually build PCL 1.8.0 from source against this VTK. Having other system versions of VTK seems to cause intermittent seg faults as there are many levels in which VTK is included as a library and it is difficult to change the CMake to force a particular version.
+Note: The implementation used for the comparison can be found [here](https://github.com/tum-mvp/ObjRecRANSAC). In order to build, we found that a very specific set of libraries was needed. This implementation is built against PCL and VTK. In order to get it to work, we choose to manually build VTK 5.10 from source and then to manually build PCL 1.8.0 from source against this VTK. Having other system versions of VTK seems to cause intermittent seg faults as there are many levels in which VTK is included as a library and it is difficult to change the CMake to force a particular version.
 
 Both ObjRecRANSAC and our method take a set of meshes (e.g., stl) and find instances in a provided 3D point cloud. As such, it was relatively straight forward
 to run a comparison. We created 3 example scenes to test the algorithms. We run the same combinatorial analysis as 
@@ -269,7 +269,7 @@ we can greatly improve our algorithm. See the 'future work' section below.
 #### PointNet++
 PointNet++ is a state of the art neural-network based approach for object recognition. The algorithm was proposed in Qi et al. [5] in 2017. Using a variety of custom pre-processing layers and tensorflow, this approach is trained to recognize objects and their specific classification.
 
-Note: The implementation used for the comparison can be found here: https://github.com/charlesq34/pointnet2. This implementation requires Tensorflow and NVIDIA CUDA Drivers. We were able to build the package using CUDA 9.0 and TensorFlow something. As a neural-net approach, the system required training. We trained using the ModelNet40.
+Note: The implementation used for the comparison can be found [here](https://github.com/charlesq34/pointnet2). This implementation requires Tensorflow and NVIDIA CUDA Drivers. We were able to build the package using CUDA 9.0 and TensorFlow something. As a neural-net approach, the system required training. We trained using the ModelNet40.
 
 ![pointnet example objects](https://mhagenow01.github.io/FBFransac/images/pointnet_example_objects.png "pointnet example objects")
 <div align="center"> Figure 8: PointNet++ Example Objects </div>
@@ -277,7 +277,7 @@ Note: The implementation used for the comparison can be found here: https://gith
 PointNet++ is designed as a classifier, meaning for an input point cloud of a single object, it will return a classification from the labels
 used during training. Thus, a direct comparison similar to above is not possible. Instead, we focus on a comparison where we 
 use FAMrec as a classifier for a representative set of objects from the same classes that the PointNet++ model was built upon.
-We train PointNet++ using the ModelNet40 database from Princeton [6] (https://modelnet.cs.princeton.edu/). From the test set of ModelNet40, we
+We train PointNet++ using the ModelNet40 database from Princeton [6] ([link](https://modelnet.cs.princeton.edu/)). From the test set of ModelNet40, we
 extract 30 representative meshes (We were unable to convert 10 of the classes to a format that works with our mesh importing system). For each of these 30 objects,
 we load them 5 times with random orientations in PointNet++ and get the classification. We also load them 5 times with random orientations into FAMrec and
 get what object is recognized (Note: FAMrec might return no object or possibly multiple - it is not a classifier). This gives us a biased, but reasonable
