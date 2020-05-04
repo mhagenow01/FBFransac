@@ -39,9 +39,9 @@ these implementations are also in github, but are not discussed further. More de
 We provide a full package python package for our implementation. This was tested using python 3.6. One of our goals
 was to create as compact and simple of code as possible to promote longevity. Our code is not yet optimized for performance.
 
-Required Packages: numpy,trimesh,point_cloud_utils,pykdtree,pyntcloud,gimpact,progress
+Required Packages: numpy, trimesh, point_cloud_utils, pykdtree, pyntcloud, gimpact, progress, open3d
 
-Suggested package install directions:
+Suggested package install directions (including some packages for FBF-RANSAC):
 ```
 pip3 install numpy
 pip3 install rtree
@@ -62,7 +62,7 @@ For FAMrec there are a few main classes that build up the method:
 method. The results are plotted using Open3D.
 * ModelFinder: This is the main class that implements the FAMrec method. This contains the hypothesis generation and refining steps.
 * Mesh: This implements basic functions for the mesh including calculating distance fields, normals, etc.
-* ModelProfile: This function performs the medial axis preprocessing for a mesh. It must be called for each mesh (you can use wildcards for meshes in a folder) before running find_models_in_cloud.
+* ModelProfile: This function performs the medial axis pre-processing for a mesh. It must be called for each mesh (you can use wildcards for meshes in a folder) before running find_models_in_cloud.
 
 Additionally, the EfficientRANSAC and FBFRansac folders have their own classes and scripts found in separate folders. There is also a utilities folder that
 provides several scripts for converting file formats, etc.
@@ -182,9 +182,10 @@ and comparison is found below.
 We find that our system is able to recognize objects across a variety of shapes and sizes, though we still believe
 the algorithm can be improved as far as reliability. In particular, our method had a challenge with the wrench model which
 was often mistaken as a series of screws. Such a classification is still a potential issue with our formulation
-where smaller geometry with similar local scales can be found within larger geometry. As future mitigation,
+where smaller geometry with similar local scales can be found within larger geometry. As partial future mitigation,
 we propose to cull the scene space as objects are found and do mesh identification ordered by decreasing volume. More
-details are below.
+details are below. For recognition of the wrench (and other objects), the low true positive rates suggest we should
+further refine our correspondence criteria to more reliably get matches.
 
 #### Recognition with Point Cloud Noise
 We desire to use our algorithm with point clouds from real 3D scenes, which requires some level
@@ -253,9 +254,9 @@ was run on FAMrec.
 
 <div align="center"> Table 2: ObjRecRANSAC Combinatorial Testing Results </div>
 
-We find that FAMrec has a slightly higher true positive rate in recognition. FAMrec also has signnificantly fewer false positives.
+We find that FAMrec has a slightly higher true positive rate in recognition. FAMrec also has significantly fewer false positives.
 ObjRecRANSAC is highly dependent on a radius search term to make the RANSAC process tractable. We attempted to tune ObjRecRANSAC to give
-the most favorable results, but ultimately the search radius makes it not paritcularly amenable to objects of various scales. This is
+the most favorable results, but ultimately the search radius makes it not particularly amenable to objects of various scales. This is
 why the screw is never found. Attempts to make the radius smaller made the program unable to recognize any of the meshes.
 ObjRecRANSAC had a consider number of misfit true positives, which we define as when the correct mesh is selected, but
 it is not fit correctly. These are not reported as true positives in the below confusion matrix. Interestingly, while this type
