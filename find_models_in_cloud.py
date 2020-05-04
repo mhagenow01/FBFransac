@@ -7,6 +7,7 @@ from ModelFinder import ModelFinder
 import open3d as o3d
 from mpl_toolkits.mplot3d import Axes3D
 from ModelProfile import *
+from Utils.PointCloudFromMesh import pointCloudFromMesh
 
 
 def main():
@@ -15,14 +16,16 @@ def main():
     The final result is plotted using Open3d 
     '''
 
-    mesh_files = ['Models/ComparisonSTLs/hammer.stl', 'Models/ComparisonSTLs/saw.stl']
-    scene = 'Models/ComparisonScenes/Cloud_comparison_scene_1.json'
+    mesh_files = ['Models/ModelNet40RepresentativeSample/stool.stl']#['Models/ComparisonSTLs/hammer.stl', 'Models/ComparisonSTLs/saw.stl']
+    #scene = 'Models/ComparisonScenes/Cloud_comparison_scene_1.json'
+    #scene = 'Models/ScrewScene.json'
+    noisyCloud = pointCloudFromMesh('Models/ModelNet40RepresentativeSample/stool.stl', 10000)
     gridResolution = 0.002
 
     Verbosifier.enableVerbosity()
 
-    with open(scene) as fin:
-        noisyCloud = np.array(json.load(fin))
+    # with open(scene) as fin:
+    #     noisyCloud = np.array(json.load(fin))
 
     finder = ModelFinder()
     finder.set_meshes(mesh_files, gridResolution)

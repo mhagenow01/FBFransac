@@ -10,7 +10,7 @@ import pickle
 import sys
 import os
 import glob
-from PointCloudFromMesh import surfaceArea, pointCloudFromMesh
+from Utils.PointCloudFromMesh import surfaceArea, pointCloudFromMesh
 from cProfile import Profile
 from pstats import Stats
 
@@ -28,7 +28,6 @@ def sameHemisphere(points):
     
     return False
 
-
 EPSILON = 0.00001
 DENSITY = 0.005
 class SupportSphere:
@@ -41,7 +40,7 @@ class SupportSphere:
         self.Iterations += 1
         if self.Iterations >= self.MaxIter:
             return False
-        dr = radius * 0.02
+        dr = radius * 0.05
         distance, index = kd.query(self.X, 10000, distance_upper_bound = radius + 2 * dr)
         distance, index = distance[0], index[0]
         index = index[~np.isinf(distance)]
@@ -77,7 +76,7 @@ class SupportSphere:
 class ObjectProfile:
     def __init__(self, meshFile):
         area, scale = surfaceArea(meshFile)
-        cloud = pointCloudFromMesh(meshFile, 4000)
+        cloud = pointCloudFromMesh(meshFile, 10000)
         print(cloud.shape)
         radii = np.arange(0.05, 0.25, 0.001) * np.min(scale)
         self.findKeyPoints(radii, cloud)
