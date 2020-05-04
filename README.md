@@ -29,7 +29,7 @@ have developed a method that uses the medial axis of the mesh to determine hypot
 Iterative-closest point (ICP) to determine a more precise mesh pose. In our approach, we tried to use geometric features
 wherever possible.
 
-In developing this approach, we built multiple other implementations. First, we developed an Efficient RANSAC program that
+In developing this approach, we built multiple other implementations. First, we developed an Efficient RANSAC [1] program that
 could identify spheres and cylinders. We then created our first algorithm Face-Based-Features RANSAC (FBF ransac) which was 
 a RANSAC-based kernel that used face to point correspondence instead of point to point typical of other RANSAC methods. Both of
 these implementations are also in github, but are not discussed further. More detail on these can be found in our [midterm report](./midtermreport.pdf).
@@ -70,7 +70,7 @@ provides several scripts for converting file formats, etc.
 One of the simplest ways to differentiate two objects is their scale. If you can determine the scale of the geometry in the scene, many objects can be quickly ruled out. One way of getting at this idea of localized scale is through the medial axis of the scene. The medial axis is defined as the set of all points that have two or more equidistant scene points. By searching for points on the medial axis of the scene that have the right distance-to-scene value, it is possible to search for locations with an appropriate scale.
 
 ![Medial Axis](https://mhagenow01.github.io/FBFransac/images/medial_axis.png "Medial Axis")
-<div align="center"> Figure 3: Left) Example of Medial Axis adapted from [xyz] Right) Discretized medial axis representation of a toy screw </div>
+<div align="center"> Figure 3: Left) Example of Medial Axis adapted from [2] Right) Discretized medial axis representation of a toy screw </div>
 
 At the core of this algorithm is the ability to find medial axis points that have *approximately* the radius we are looking for. While there are a number of algorithms to find medial axis points from a geometry, they are generally highly sensitive to noise in the cloud. The need to *robustly* identify a *single* point on the medial axis that is a certain distance from the scene motivates the following, Mean Shift inspired, novel algorithm:
 
@@ -139,7 +139,7 @@ positions for the mesh, but not rotation. In order to prevent the ICP from getti
 we use a random restarts approach where each restart is given a random orientation (drawn from the Haar distribution for SO(3)).
 
 Finally, to provide a level of robustness to occlusion that is common particularly when point clouds
-are constructed from a single image, we implement the occlusion method described in [1] . During each ICP iteration
+are constructed from a single image, we implement the occlusion method described in [3] . During each ICP iteration
 only a percentage of the closest corresponding face-point combinations are selected. From experimental tuning, we choose to use
 80 percent of the faces, which allows for some occlusion-handling while not skewing results for non-occluded objects.
 
@@ -228,7 +228,7 @@ Both of our algorithms are able to find and determine the pose of the spheres an
 ![Example ObjRecRANSAC](https://mhagenow01.github.io/FBFransac/images/objrecransac_example_results.png "Example ObjRecRANSAC")
 <div align="center"> Figure 7: Example of ObjRecRANSAC Results </div>
 
-ObjRecRANSAC is a RANSAC-kernel based method that uses random sampling to identify geometry in the environment. The original algorithm was proposed by Papazov et al. [1] in 2011. The key idea is to identify key sets of points that can be used for recognition as part of a RANSAC algorithm.
+ObjRecRANSAC is a RANSAC-kernel based method that uses random sampling to identify geometry in the environment. The original algorithm was proposed by Papazov et al. [4] in 2011. The key idea is to identify key sets of points that can be used for recognition as part of a RANSAC algorithm.
 
 Note: The implementation used for the comparison can be found here: https://github.com/tum-mvp/ObjRecRANSAC. In order to build, we found that a very specific set of libraries was needed. This implementation is built against PCL and VTK. In order to get it to work, we choose to manually build VTK 5.10 from source and then to manually build PCL 1.8.0 from source against this VTK. Having other system versions of VTK seems to cause intermittent seg faults as there are many levels in which VTK is included as a library and it is difficult to change the CMake to force a particular version.
 
@@ -267,7 +267,7 @@ While our algorithm only performs marginally better than the current state of th
 we can greatly improve our algorithm. See the 'future work' section below.
 
 #### PointNet++
-PointNet++ is a state of the art neural-network based approach for object recognition. The algorithm was proposed in Qi et al. [2] in 2017. Using a variety of custom pre-processing layers and tensorflow, this approach is trained to recognize objects and their specific classification.
+PointNet++ is a state of the art neural-network based approach for object recognition. The algorithm was proposed in Qi et al. [5] in 2017. Using a variety of custom pre-processing layers and tensorflow, this approach is trained to recognize objects and their specific classification.
 
 Note: The implementation used for the comparison can be found here: https://github.com/charlesq34/pointnet2. This implementation requires Tensorflow and NVIDIA CUDA Drivers. We were able to build the package using CUDA 9.0 and TensorFlow something. As a neural-net approach, the system required training. We trained using the ModelNet40.
 
@@ -277,7 +277,7 @@ Note: The implementation used for the comparison can be found here: https://gith
 PointNet++ is designed as a classifier, meaning for an input point cloud of a single object, it will return a classification from the labels
 used during training. Thus, a direct comparison similar to above is not possible. Instead, we focus on a comparison where we 
 use FAMrec as a classifier for a representative set of objects from the same classes that the PointNet++ model was built upon.
-We train PointNet++ using the ModelNet40 database from Princeton [xyz] (https://modelnet.cs.princeton.edu/). From the test set of ModelNet40, we
+We train PointNet++ using the ModelNet40 database from Princeton [6] (https://modelnet.cs.princeton.edu/). From the test set of ModelNet40, we
 extract 30 representative meshes (We were unable to convert 10 of the classes to a format that works with our mesh importing system). For each of these 30 objects,
 we load them 5 times with random orientations in PointNet++ and get the classification. We also load them 5 times with random orientations into FAMrec and
 get what object is recognized (Note: FAMrec might return no object or possibly multiple - it is not a classifier). This gives us a biased, but reasonable
@@ -318,7 +318,7 @@ metric to compare the methods. The following two tables have the classification 
 
 <div align="center"> Table 4: FAMrec Classification Testing </div>
 
-DISCUSS OVERALL CLASSIFICATION AND SOME OF THE ISSUES!!
+TODO: DISCUSS OVERALL CLASSIFICATION AND SOME OF THE ISSUES!!
 
 #### Conclusions and Future Work
 The results suggest that this algorithm is, in many ways, on par with others in the field. It shows the potential to beat other competing algorithms, and even compare favorably against modern neural network approaches if this were refined significantly. However, currently this implementation is still in its technical infancy. There are a number of improvements that could be made to improve the practicality, and accuracy. The most signficant of which is the concept of "culling space" as we look for objects. Currently, if we fail to find a keypoint at a certain radius, we don't gain any information and might sample the same region at the same radius again. This is highly problematic when the target object represents a very small portion of the scene. If a region could be determined to *not* contain an object, the convergence of the algorithm would be sped up dramatically. 
@@ -332,9 +332,9 @@ In addition to making our algorithm more robust to occlusions, we also might exp
 is mounted to a robot, knowing an occlusion is occurring may inform the robot to change its pose to give the camera a less occluded view.
 
 #### References
-[1] P. Liu, Y. Wang, D. Huang and Z. Zhang, "Recognizing Occluded 3D Faces Using an Efficient ICP Variant," 2012 IEEE International Conference on Multimedia and Expo, Melbourne, VIC, 2012, pp. 350-355.  
-[1] Chavdar   Papazov,   Sami   Haddadin,   Sven   Parusel,   Kai   Krieger,   and   Darius   Burschka.Rigid3d   geometry   matching   for   grasping   of   known   objects   in   cluttered   scenes.The InternationalJournal  of  Robotics  Research,   31(4):538–553,   2012.doi:10.1177/0278364911436019.URLhttps://doi.org/10.1177/0278364911436019.  
-[2] Charles R. Qi, Li Yi, Hao Su, and Leonidas J. Guibas. Pointnet++: Deep hierarchical feature learning onpoint sets in a metric space.  InProceedings of the 31st International Conference on Neural InformationProcessing Systems, NIPS’17, page 5105–5114, Red Hook, NY, USA, 2017. Curran Associates Inc. ISBN9781510860964
-[xyz] Z. Wu, S. Song, A. Khosla, F. Yu, L. Zhang, X. Tang and J. Xiao. 3D ShapeNets: A Deep Representation for Volumetric Shapes. Proceedings of 28th IEEE Conference on Computer Vision and Pattern Recognition (CVPR2015)  
-[xyz]  Demirci M.F. Boluk, A.  Object recognition based on critical nodes.Pattern  Anal  Applic, 22:147–163,2019.  doi:  10.1007/s10044-018-00777-w.  
-[xyz] Ruwen Schnabel,  Roland Wahl,  and Reinhard Klein.  Efficient ransac for point-cloud shape detection.Comput. Graph. Forum, 26:214–226, 06 2007.  doi:  10.1111/j.1467-8659.2007.01016.x.  
+[1] Ruwen Schnabel,  Roland Wahl,  and Reinhard Klein.  Efficient ransac for point-cloud shape detection.Comput. Graph. Forum, 26:214–226, 06 2007.  doi:  10.1111/j.1467-8659.2007.01016.x.  
+[2]  Demirci M.F. Boluk, A.  Object recognition based on critical nodes.Pattern  Anal  Applic, 22:147–163,2019.  doi:  10.1007/s10044-018-00777-w.  
+[3] P. Liu, Y. Wang, D. Huang and Z. Zhang, "Recognizing Occluded 3D Faces Using an Efficient ICP Variant," 2012 IEEE International Conference on Multimedia and Expo, Melbourne, VIC, 2012, pp. 350-355.  
+[4] Chavdar   Papazov,   Sami   Haddadin,   Sven   Parusel,   Kai   Krieger,   and   Darius   Burschka.Rigid3d   geometry   matching   for   grasping   of   known   objects   in   cluttered   scenes.The InternationalJournal  of  Robotics  Research,   31(4):538–553,   2012.doi:10.1177/0278364911436019.URLhttps://doi.org/10.1177/0278364911436019.  
+[5] Charles R. Qi, Li Yi, Hao Su, and Leonidas J. Guibas. Pointnet++: Deep hierarchical feature learning onpoint sets in a metric space.  InProceedings of the 31st International Conference on Neural InformationProcessing Systems, NIPS’17, page 5105–5114, Red Hook, NY, USA, 2017. Curran Associates Inc. ISBN9781510860964
+[6] Z. Wu, S. Song, A. Khosla, F. Yu, L. Zhang, X. Tang and J. Xiao. 3D ShapeNets: A Deep Representation for Volumetric Shapes. Proceedings of 28th IEEE Conference on Computer Vision and Pattern Recognition (CVPR2015)  
