@@ -305,16 +305,16 @@ metric to compare the methods. The following two tables have the classification 
 
 | Object    | Classification | Object     | Classification | Object     | Classification |
 |-----------|----------------|------------|----------------|------------|----------------|
-| bed       | 0.0            | door       | 0.0            | radio      | 0.4            |
-| bench     | 0.4            | flower pot | 0.0            | range hood | 0.0            |
-| bookshelf | 0.0            | glass box  | 0.0            | sink       | 0.0            |
-| bottle    | 0.0            | keyboard   | 0.2            | stairs     | 0.4            |
-| bowl      | 0.2            | lamp       | 0.4            | stool      | 0.0            |
-| car       | 0.6            | laptop     | 0.0            | tent       | 0.2            |
-| chair     | 0.2            | mantel     | 0.2            | toilet     | 0.0            |
-| cone      | 0.4            | person     | 0.0            | tv stand   | 0.0            |
-| cup       | 0.0            | piano      | 0.0            | vase       | 0.6            |
-| curtain   | 0.4            | plant      | 1.0            | wardrobe   | 0.0            |
+| bed       | 0.0            | door       | 0.0            | radio      | 0.0            |
+| bench     | 0.4            | flower pot | 1.0            | range hood | 0.0            |
+| bookshelf | 0.8            | glass box  | 0.6            | sink       | 0.8            |
+| bottle    | 0.2            | keyboard   | 0.0            | stairs     | 0.0            |
+| bowl      | 0.4            | lamp       | 0.0            | stool      | 0.4            |
+| car       | 0.2            | laptop     | 0.0            | tent       | 0.0            |
+| chair     | 0.0            | mantel     | 0.0            | toilet     | 0.0            |
+| cone      | 0.0            | person     | 1.0            | tv stand   | 0.0            |
+| cup       | 1.0            | piano      | 0.2            | vase       | 0.8            |
+| curtain   | 0.4            | plant      | 0.6            | wardrobe   | 0.0            |
 
 <div align="center"> Table 4: FAMrec Classification Testing </div>
 
