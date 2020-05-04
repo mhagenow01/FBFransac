@@ -138,10 +138,10 @@ Second, we implement a random restarts framework around the ICP algorithm. The m
 positions for the mesh, but not rotation. In order to prevent the ICP from getting caught in local minima during iterations,
 we use a random restarts approach where each restart is given a random orientation (drawn from the Haar distribution for SO(3)).
 
-Finally, to provide a level of robustness to Occlusion that is common particularly when point clouds
+Finally, to provide a level of robustness to occlusion that is common particularly when point clouds
 are constructed from a single image, we implement the occlusion method described in [1] . During each ICP iteration
 only a percentage of the closest corresponding face-point combinations are selected. From experimental tuning, we choose to use
-80 percent of the faces, which allows for some Occlusion-handling while not skewing results for non-occluded objects.
+80 percent of the faces, which allows for some occlusion-handling while not skewing results for non-occluded objects.
 
 ##### Pose Validation
 
@@ -160,8 +160,8 @@ We created 3 random scenes that contain all seven objects with randomized poses.
 of 100,000 points. We perform a combinatorial (e.g., 7 choose 3) analysis for each of the scenes and report the confusion matrix
 results. We added an additional category to the standard confusion matrix  for 'Misfit True Positive' which is when
 the correct model is selected, but the pose is incorrect (more common of competing methods). The results are reported in 
-Table xyz. ** Note: While the results may seem to be a low percentage, it is on part with existing methods (e.g., ObjRecRANSAC). More detail
-and comparison is found below.**
+Table 1. Note: While the results may seem to be a low percentage, it is on part with existing methods (e.g., ObjRecRANSAC). More detail
+and comparison is found below.
 
 | Object          | True Positive | Misfit True Positive | False Negative | True Negative | False Positive |
 |-----------------|---------------|----------------------|----------------|---------------|----------------|
@@ -198,7 +198,7 @@ The medial-axis part of our algorithm can still identify geometry under large pe
 sections of the mesh are still visible.
 To test our ICP algorithm against occlusions, we artificially remove sections of a screw model and use
 ICP to recognize the pose. As a reminder, our algorithm is designed to still function seamlessly for less than 20 percent occlusion. In testing, we have found that our algorithm is robust to small amounts of occlusions (<30%).
-Below, we show one example of Occlusion testing against a model of a screw. In this figure, blue points are the point cloud points used for fitting and the green points are an outline of the fit mesh. At around 50 percent occlusion, the mesh fit starts to have notable error. At this point, the principal
+Below, we show one example of occlusion testing against a model of a screw. In this figure, blue points are the point cloud points used for fitting and the green points are an outline of the fit mesh. At around 50 percent occlusion, the mesh fit starts to have notable error. At this point, the principal
 axis of the remaining points of the screw starts to align with the mesh principal axis. This is expected behavior for an ICP-type algorithm.
 At approximately 80 percent, the mesh fit is incorrect. More discussion about occlusions can be found below in the future work.
 
@@ -269,7 +269,7 @@ we can greatly improve our algorithm. See the 'future work' section below.
 #### PointNet++
 PointNet++ is a state of the art neural-network based approach for object recognition. The algorithm was proposed in Qi et al. [2] in 2017. Using a variety of custom pre-processing layers and tensorflow, this approach is trained to recognize objects and their specific classification.
 
-Note: The implementation used for the comparison can be found here: https://github.com/charlesq34/pointnet2. This implementation requires Tensorflow and NVIDIA CUDA Drivers. We were able to build the package using CUDA 9.0 and TensorFlow something. As a neural-net approach, the system required training. We trained using the model40.
+Note: The implementation used for the comparison can be found here: https://github.com/charlesq34/pointnet2. This implementation requires Tensorflow and NVIDIA CUDA Drivers. We were able to build the package using CUDA 9.0 and TensorFlow something. As a neural-net approach, the system required training. We trained using the ModelNet40.
 
 ![pointnet example objects](https://mhagenow01.github.io/FBFransac/images/pointnet_example_objects.png "pointnet example objects")
 <div align="center"> Figure 8: PointNet++ Example Objects </div>
