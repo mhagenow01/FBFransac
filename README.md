@@ -39,7 +39,7 @@ these implementations are also in github, but are not discussed further. More de
 We provide a full package python package for our implementation. This was tested using python 3.6. One of our goals
 was to create as compact and simple of code as possible to promote longevity. Our code is not yet optimized for performance.
 
-Required Packages: numpy,trimesh,point_cloud_utils,pykdtree,pyntcloud
+Required Packages: numpy,trimesh,point_cloud_utils,pykdtree,pyntcloud,gimpact,progress
 
 Suggested package install directions:
 ```
@@ -50,8 +50,9 @@ pip3 install trimesh
 pip3 install git+git://github.com/fwilliams/point-cloud-utils
 pip3 install pykdtree
 pip3 install pyntcloud
-pip3 install progressbar
-pip install open3d
+pip3 install progress
+pop3 install gimpact
+pip3 install open3d
 or conda install -c conda-forge point_cloud_utils
 ```
 
